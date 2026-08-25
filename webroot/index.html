@@ -11,8 +11,8 @@
     main{width:min(780px,100%);margin:0 auto;padding:22px 16px 32px}h1{margin:0;font-size:24px;line-height:1.15}.sub{margin:6px 0 18px;color:var(--muted);font-size:14px}
     .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
     label{display:grid;gap:7px;color:var(--muted);font-size:13px}input,select{width:100%;min-height:46px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--text);padding:10px 12px;font:inherit}
-    input:focus,select:focus{outline:2px solid color-mix(in srgb,var(--accent) 42%,transparent);border-color:var(--accent)}.actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
-    button{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:0 14px;background:var(--panel);color:var(--text);font:inherit;font-weight:650}button.primary{border-color:var(--accent);background:var(--accent);color:#fff}button:active{transform:translateY(1px)}
+    input[readonly]{opacity:.82;cursor:default}input:focus,select:focus{outline:2px solid color-mix(in srgb,var(--accent) 42%,transparent);border-color:var(--accent)}.hint{margin-top:-2px;color:var(--muted);font-size:11px;line-height:1.35}
+    .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}button{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:0 14px;background:var(--panel);color:var(--text);font:inherit;font-weight:650}button.primary{border-color:var(--accent);background:var(--accent);color:#fff}button:active{transform:translateY(1px)}
     .message{min-height:22px;color:var(--muted);font-size:14px;margin-top:12px}.message.ok{color:var(--ok)}.message.warn{color:var(--warn)}
     .section-title{font-size:14px;font-weight:700;margin:0 0 10px}.status{display:grid;gap:0}.row{display:grid;grid-template-columns:minmax(145px,.9fr) minmax(0,1.3fr) auto;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:10px 0}.row:last-child{border-bottom:0}.row span{color:var(--muted);font-size:13px}.row code{overflow-wrap:anywhere;color:var(--text);font-size:13px}.badge{font-size:11px;font-weight:700;border-radius:999px;padding:3px 7px}.badge.ok{color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}.badge.warn{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
     @media(max-width:560px){.grid{grid-template-columns:1fr}button{flex:1 1 150px}.row{grid-template-columns:1fr auto}.row code{grid-column:1/3}.row span{grid-column:1/2}.badge{grid-column:2/3;grid-row:1}}
@@ -21,14 +21,17 @@
 <body>
 <main>
   <h1>SIM Country Spoofer A16</h1>
-  <p class="sub">APatch / Android 16 / LineageOS 23.2：事件监听 Telephony 属性变化，保存后立即应用。</p>
+  <p class="sub">APatch / Android 16 / LineageOS 23.2：选择国家与真实运营商，MCC/MNC 自动联动，保存后立即应用。</p>
 
   <section class="panel">
     <div class="grid">
-      <label>国家码 MCC<input id="mcc" inputmode="numeric" maxlength="3" placeholder="310"></label>
-      <label>网络码 MNC<input id="mnc" inputmode="numeric" maxlength="3" placeholder="260"></label>
-      <label>ISO 国家<input id="iso" maxlength="2" placeholder="us"></label>
-      <label>运营商名称<input id="alpha" maxlength="48" placeholder="T-Mobile"></label>
+      <label>ISO 国家
+        <select id="country"></select>
+        <span class="hint" id="isoHint"></span>
+      </label>
+      <label>运营商名称<select id="carrier"></select></label>
+      <label>国家码 MCC<input id="mcc" readonly></label>
+      <label>网络码 MNC<input id="mnc" readonly></label>
       <label>SIM 槽数量<select id="slots"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
       <label>回退检查间隔<select id="interval"><option value="5">5 秒</option><option value="10">10 秒</option><option value="15">15 秒</option><option value="30">30 秒</option><option value="60">60 秒</option></select></label>
     </div>
@@ -41,8 +44,81 @@
 </main>
 <script>
   const MODULE = "/data/adb/modules/sim_country_spoofer/webui.sh";
-  const fields = {mcc:document.getElementById("mcc"),mnc:document.getElementById("mnc"),iso:document.getElementById("iso"),alpha:document.getElementById("alpha"),slots:document.getElementById("slots"),interval:document.getElementById("interval")};
+
+  // Presets use one representative live PLMN for each major carrier.
+  // The UI key "uk" is kept for convenience, while Android Telephony receives ISO-3166 code "gb".
+  const COUNTRY_PRESETS = {
+    us:{label:"us — United States",iso:"us",carriers:[
+      {name:"T-Mobile",mcc:"310",mnc:"260"},
+      {name:"AT&T",mcc:"310",mnc:"410"},
+      {name:"Verizon",mcc:"311",mnc:"480"}
+    ]},
+    au:{label:"au — Australia",iso:"au",carriers:[
+      {name:"Telstra",mcc:"505",mnc:"01"},
+      {name:"Optus",mcc:"505",mnc:"02"},
+      {name:"Vodafone AU",mcc:"505",mnc:"03"}
+    ]},
+    ca:{label:"ca — Canada",iso:"ca",carriers:[
+      {name:"Rogers",mcc:"302",mnc:"720"},
+      {name:"Bell",mcc:"302",mnc:"610"},
+      {name:"TELUS",mcc:"302",mnc:"220"}
+    ]},
+    de:{label:"de — Germany",iso:"de",carriers:[
+      {name:"Telekom DE",mcc:"262",mnc:"01"},
+      {name:"Vodafone DE",mcc:"262",mnc:"02"},
+      {name:"O2 Germany",mcc:"262",mnc:"03"}
+    ]},
+    jp:{label:"jp — Japan",iso:"jp",carriers:[
+      {name:"NTT DOCOMO",mcc:"440",mnc:"10"},
+      {name:"au (KDDI)",mcc:"440",mnc:"50"},
+      {name:"SoftBank",mcc:"440",mnc:"20"},
+      {name:"Rakuten Mobile",mcc:"440",mnc:"11"}
+    ]},
+    kr:{label:"kr — South Korea",iso:"kr",carriers:[
+      {name:"SK Telecom",mcc:"450",mnc:"05"},
+      {name:"KT",mcc:"450",mnc:"08"},
+      {name:"LG U+",mcc:"450",mnc:"06"}
+    ]},
+    uk:{label:"uk — United Kingdom",iso:"gb",carriers:[
+      {name:"EE",mcc:"234",mnc:"30"},
+      {name:"O2 UK",mcc:"234",mnc:"10"},
+      {name:"Vodafone UK",mcc:"234",mnc:"15"},
+      {name:"Three UK",mcc:"234",mnc:"20"}
+    ]}
+  };
+
+  const fields={
+    country:document.getElementById("country"),carrier:document.getElementById("carrier"),
+    mcc:document.getElementById("mcc"),mnc:document.getElementById("mnc"),
+    slots:document.getElementById("slots"),interval:document.getElementById("interval"),
+    isoHint:document.getElementById("isoHint")
+  };
   const message=document.getElementById("message"),environment=document.getElementById("environment"),statusBox=document.getElementById("status");
+
+  function initCountries(){fields.country.innerHTML=Object.entries(COUNTRY_PRESETS).map(([key,c])=>`<option value="${key}">${c.label}</option>`).join("")}
+  function currentCountry(){return COUNTRY_PRESETS[fields.country.value]||COUNTRY_PRESETS.us}
+  function currentCarrier(){const c=currentCountry();return c.carriers.find(x=>x.name===fields.carrier.value)||c.carriers[0]}
+  function updateCarrierOptions(preferredName=""){
+    const c=currentCountry();
+    fields.carrier.innerHTML=c.carriers.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("");
+    if(c.carriers.some(x=>x.name===preferredName))fields.carrier.value=preferredName;
+    updateLinkedFields();
+  }
+  function updateLinkedFields(){
+    const country=currentCountry(),carrier=currentCarrier();
+    fields.mcc.value=carrier.mcc;fields.mnc.value=carrier.mnc;
+    fields.isoHint.textContent=fields.country.value==="uk"?"界面使用 uk；写入 Android Telephony 的标准 ISO 值为 gb。":`写入 Telephony ISO：${country.iso}`;
+  }
+  function findPreset(d){
+    const iso=String(d.TARGET_ISO||"").toLowerCase(),mcc=String(d.TARGET_MCC||""),mnc=String(d.TARGET_MNC||""),alpha=String(d.TARGET_ALPHA||"");
+    for(const [key,country] of Object.entries(COUNTRY_PRESETS)){
+      if(country.iso!==iso&&key!==iso)continue;
+      const carrier=country.carriers.find(x=>(x.mcc===mcc&&x.mnc===mnc)||x.name===alpha);
+      if(carrier)return{key,carrier};
+    }
+    return null;
+  }
+
   function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
   function getBridge(){return [window.ksu,window.kernelsu,window.KSU,window.apatch].find(b=>b&&typeof b.exec==="function")}
   function normalizeResult(result){if(typeof result==="string")return{errno:0,stdout:result,stderr:""};return{errno:Number(result&&(result.errno??result.code??0)),stdout:String(result&&(result.stdout??result.out??"")),stderr:String(result&&(result.stderr??result.err??""))}}
@@ -51,13 +127,21 @@
   async function exec(command){const r=normalizeResult(await run(command));if(r.errno!==0)throw new Error(r.stderr||r.stdout||"命令执行失败");return r.stdout}
   function parsePayload(text){const lines=String(text).trim().split(/\r?\n/).filter(Boolean);if(!lines.length)throw new Error("模块没有返回状态。");try{return JSON.parse(lines[lines.length-1])}catch(e){throw new Error("无法解析模块状态："+lines[lines.length-1])}}
   function setMessage(text,type=""){message.textContent=text;message.className="message "+type}
-  function fillForm(d){fields.mcc.value=d.TARGET_MCC||"310";fields.mnc.value=d.TARGET_MNC||"260";fields.iso.value=d.TARGET_ISO||"us";fields.alpha.value=d.TARGET_ALPHA||"T-Mobile";fields.slots.value=d.SLOT_COUNT||"2";fields.interval.value=d.WATCH_INTERVAL||"15"}
+  function fillForm(d){
+    const preset=findPreset(d);
+    if(preset){fields.country.value=preset.key;updateCarrierOptions(preset.carrier.name)}
+    else{fields.country.value="us";updateCarrierOptions("T-Mobile");setMessage("当前配置不在预设列表中；界面已显示默认 US/T-Mobile，保存前请重新选择。","warn")}
+    fields.slots.value=d.SLOT_COUNT||"2";fields.interval.value=d.WATCH_INTERVAL||"15";
+  }
   function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
   function row(label,value,state){const badge=state===undefined?"":`<b class="badge ${state?"ok":"warn"}">${state?"OK":"DIFF"}</b>`;return `<div class="row"><span>${esc(label)}</span><code>${esc(value||"-")}</code>${badge}</div>`}
   function render(d){environment.innerHTML=[row("Root 管理器",d.ROOT_MANAGER),row("Android API",d.ANDROID_API),row("LineageOS",d.ROM_VERSION||"-"),row("resetprop",d.RESETPROP),row("监控模式",d.WATCH_MODE),row("服务状态",d.SERVICE_STATE,d.SERVICE_STATE==="running")].join("");statusBox.innerHTML=[row("SIM MCC/MNC",d.PROP_SIM_NUMERIC,d.PROP_SIM_NUMERIC===d.EXPECTED_NUMERIC),row("SIM ISO",d.PROP_SIM_ISO,d.PROP_SIM_ISO===d.EXPECTED_ISO),row("SIM 运营商",d.PROP_SIM_ALPHA,d.PROP_SIM_ALPHA===d.EXPECTED_ALPHA),row("网络 MCC/MNC",d.PROP_OPERATOR_NUMERIC,d.PROP_OPERATOR_NUMERIC===d.EXPECTED_NUMERIC),row("网络 ISO",d.PROP_OPERATOR_ISO,d.PROP_OPERATOR_ISO===d.EXPECTED_ISO),row("网络运营商",d.PROP_OPERATOR_ALPHA,d.PROP_OPERATOR_ALPHA===d.EXPECTED_ALPHA)].join("")}
-  function validate(){const mcc=fields.mcc.value.trim(),mnc=fields.mnc.value.trim(),iso=fields.iso.value.trim().toLowerCase(),alpha=fields.alpha.value.trim();if(!/^\d{3}$/.test(mcc))throw new Error("MCC 必须是 3 位数字。");if(!/^\d{2,3}$/.test(mnc))throw new Error("MNC 必须是 2 或 3 位数字。");if(!/^[a-z]{2}$/.test(iso))throw new Error("ISO 必须是 2 个英文字母，例如 us、gb、jp。");if(!alpha||/[\r\n\t]/.test(alpha))throw new Error("运营商名称不能为空，也不能包含控制字符。");return{mcc,mnc,iso,alpha,slots:fields.slots.value,interval:fields.interval.value}}
-  async function refresh(){setMessage("正在读取当前配置...");const d=parsePayload(await exec(`sh ${shellQuote(MODULE)} read`));fillForm(d);render(d);setMessage("已刷新。","ok")}
+  function validate(){const country=currentCountry(),carrier=currentCarrier();if(!country||!carrier)throw new Error("请选择有效的国家和运营商。");return{mcc:carrier.mcc,mnc:carrier.mnc,iso:country.iso,alpha:carrier.name,slots:fields.slots.value,interval:fields.interval.value}}
+  async function refresh(){setMessage("正在读取当前配置...");const d=parsePayload(await exec(`sh ${shellQuote(MODULE)} read`));fillForm(d);render(d);if(message.classList.contains("warn"))return;setMessage("已刷新。","ok")}
   async function save(){try{const d=validate();setMessage("正在保存并应用...");const cmd=["sh",shellQuote(MODULE),"apply",shellQuote(d.mcc),shellQuote(d.mnc),shellQuote(d.iso),shellQuote(d.alpha),shellQuote(d.slots),shellQuote(d.interval)].join(" ");const data=parsePayload(await exec(cmd));fillForm(data);render(data);setMessage("已保存并立即应用；APatch 会持续监听 Telephony 覆盖并自动修复。","ok")}catch(e){setMessage(e.message,"warn")}}
+
+  initCountries();fields.country.value="us";updateCarrierOptions("T-Mobile");
+  fields.country.addEventListener("change",()=>updateCarrierOptions());fields.carrier.addEventListener("change",updateLinkedFields);
   document.getElementById("save").addEventListener("click",save);document.getElementById("refresh").addEventListener("click",()=>refresh().catch(e=>setMessage(e.message,"warn")));refresh().catch(e=>setMessage(e.message,"warn"));
 </script>
 </body>
