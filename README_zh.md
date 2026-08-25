@@ -1,71 +1,99 @@
-# SIM Country Spoofer
+# SIM Country Spoofer A16
 
-SIM Country Spoofer 是一个 Magisk / Magisk Alpha 模块，用来在开机时修改常见的 SIM / 运营商国家相关系统属性，并提供兼容 KsuWebUIStandalone 的可视化配置界面。
+面向 **APatch + Android 16 / LineageOS 23.2** 优化的 SIM / 运营商国家属性模块，同时保留 Magisk / KernelSU 的回退兼容路径。
 
-## 功能
+## Android 16 版改动
 
-- 修改常见 SIM / 运营商属性，例如 `gsm.sim.operator.numeric`、`gsm.sim.operator.iso-country`
-- 开机自动应用，并在 Android 启动完成后短时间重复应用，减少被系统电话服务覆盖的概率
-- 支持双 SIM 形式的逗号分隔属性
-- 内置 `webroot/index.html`，可在 KsuWebUIStandalone 打开界面
-- 仍然支持手动编辑 `config.conf`
+- 修复 APatch WebUI 只返回命令最后一行导致状态页面仅显示“当前运营商 ISO”的问题。
+- WebUI 后端改为单行 JSON 状态，APatch 同步 `exec()` 可以一次获得完整结果。
+- 使用 Android 16 TelephonyProperties 的标准逗号分隔属性，不再默认依赖非标准 `.0/.1` 属性。
+- 新增 `system.prop`，让 APatch / Magisk 在开机早期先加载目标属性。
+- `post-fs-data.sh` 再进行一次早期同步。
+- `service.sh` 等待 Android Telephony 完成第一轮初始化后再强制应用。
+- APatch 下优先使用原生 `resetprop -w` 监听属性变化。Telephony、RIL、飞行模式或 SIM 重新初始化覆盖属性后，会立即修复，而不是旧版“每 5 秒重复 120 秒后停止”。
+- 非 APatch / 不支持 `resetprop -w` 时使用低开销回退轮询。
+- 只在属性实际不同的时候写入，减少无意义 resetprop 操作和日志。
+- WebUI 增加 Root 管理器、Android API、LineageOS 版本、resetprop、监控模式和六个核心属性的实时 OK/DIFF 状态。
 
 ## 默认配置
 
 ```text
-MCC/MNC: 310260
+MCC: 310
+MNC: 260
 ISO: us
 运营商: T-Mobile
 SIM 槽数量: 2
+回退检查间隔: 15 秒
 ```
 
-## 安装
-
-1. 从 GitHub Releases 下载 ZIP。
-2. 在 Magisk / Magisk Alpha 中安装。
-3. 重启手机。
-4. 打开 KsuWebUIStandalone，刷新模块列表。
-
-## 手动配置
-
-编辑：
+配置文件：
 
 ```text
 /data/adb/modules/sim_country_spoofer/config.conf
 ```
 
-日本 NTT DOCOMO 示例：
+## 核心属性
 
-```sh
-TARGET_MCC=440
-TARGET_MNC=10
-TARGET_ISO=jp
-TARGET_ALPHA="NTT DOCOMO"
-SLOT_COUNT=2
-REAPPLY_SECONDS=120
-REAPPLY_INTERVAL=5
+Android 16 / LineageOS 23.2 默认维护以下标准 Telephony 属性：
+
+```text
+gsm.sim.operator.numeric
+gsm.sim.operator.iso-country
+gsm.sim.operator.alpha
+gsm.operator.numeric
+gsm.operator.iso-country
+gsm.operator.alpha
 ```
 
-改完后重启，或在 root shell 中立即应用：
+双卡配置会使用标准的逗号分隔形式，例如：
 
-```sh
-sh /data/adb/modules/sim_country_spoofer/service.sh
+```text
+gsm.sim.operator.numeric=310260,310260
+gsm.sim.operator.iso-country=us,us
 ```
 
-## 检查是否生效
+旧版使用的 `gsm.*.0` / `gsm.*.1` 形式在本版默认关闭；如确实有特殊 ROM 需要，可在 `config.conf` 将 `LEGACY_SLOT_PROPS=1`。
+
+## APatch 运行流程
+
+```text
+system.prop 早期加载
+        ↓
+post-fs-data 再同步一次
+        ↓
+等待 sys.boot_completed
+        ↓
+等待 Telephony 第一轮 SIM/网络属性
+        ↓
+应用目标 MCC/MNC/ISO/运营商
+        ↓
+APatch resetprop -w 事件监听
+        ↓
+属性被 Telephony/RIL 改回时立即修复
+```
+
+APatch 当前原生提供 Magisk-compatible `resetprop`，本版会自动检测其 `--wait` 能力；不支持时自动回退到轮询模式。
+
+## 检查
+
+在 APatch 中打开模块 WebUI，六个 Telephony 属性应显示 `OK`。
+
+也可以使用：
 
 ```sh
 getprop gsm.sim.operator.numeric
 getprop gsm.sim.operator.iso-country
+getprop gsm.sim.operator.alpha
 getprop gsm.operator.numeric
 getprop gsm.operator.iso-country
+getprop gsm.operator.alpha
 ```
 
-## 注意
+或者点击 APatch 模块的 Action 查看诊断信息。
 
-不同应用检测地区的方式不同。这个模块只修改常见的 SIM / 运营商属性；如果应用还检查 IP、GPS、账号地区、Google 服务、真实订阅信息或电话框架返回值，它可能仍然识别出真实地区。
+## 边界
 
-请只在当地法律和相关服务规则允许的范围内使用。
+这是 **system property 层** 的 SIM / 运营商国家伪装。它不会修改真实 IMSI、ICCID、eSIM Profile、SubscriptionInfo、CarrierConfig、基带身份、IP、GPS 或账号地区。应用如果读取这些其它来源，仍可能得到真实信息。
 
 ## 许可证
 
