@@ -1,6 +1,6 @@
 id=sim_country_spoofer
 name=SIM Country Spoofer A16
-version=2.0-A16-APatch
-versionCode=3
+version=2.1-A16-APatch
+versionCode=4
 author=扶摇 / Android 16 APatch compatibility update
-description=Android 16 / LineageOS 23.2 optimized SIM/operator property spoofer with APatch event watching and native WebUI status support.
+description=Android 16 / LineageOS 23.2 optimized SIM/operator property spoofer with APatch event watching, carrier presets, automatic MCC/MNC selection, and native WebUI status support.
