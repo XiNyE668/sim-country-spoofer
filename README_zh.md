@@ -1,84 +1,77 @@
 # SIM Country Spoofer A16
 
-面向 **APatch + Android 16 / LineageOS 23.2** 优化的 SIM / 运营商国家属性模块，同时保留 Magisk / KernelSU 的回退兼容路径。
+这是针对 Android 16 / LineageOS 23.2 / APatch 优化的 SIM / 运营商国家属性模块。
 
-## Android 16 版改动
+## 主要改进
 
-- 修复 APatch WebUI 只返回命令最后一行导致状态页面仅显示“当前运营商 ISO”的问题。
-- WebUI 后端改为单行 JSON 状态，APatch 同步 `exec()` 可以一次获得完整结果。
-- 使用 Android 16 TelephonyProperties 的标准逗号分隔属性，不再默认依赖非标准 `.0/.1` 属性。
-- 新增 `system.prop`，让 APatch / Magisk 在开机早期先加载目标属性。
-- `post-fs-data.sh` 再进行一次早期同步。
-- `service.sh` 等待 Android Telephony 完成第一轮初始化后再强制应用。
-- APatch 下优先使用原生 `resetprop -w` 监听属性变化。Telephony、RIL、飞行模式或 SIM 重新初始化覆盖属性后，会立即修复，而不是旧版“每 5 秒重复 120 秒后停止”。
-- 非 APatch / 不支持 `resetprop -w` 时使用低开销回退轮询。
-- 只在属性实际不同的时候写入，减少无意义 resetprop 操作和日志。
-- WebUI 增加 Root 管理器、Android API、LineageOS 版本、resetprop、监控模式和六个核心属性的实时 OK/DIFF 状态。
+- 使用 Android 16 当前标准的逗号分隔 TelephonyProperties：
+  - `gsm.sim.operator.numeric`
+  - `gsm.sim.operator.iso-country`
+  - `gsm.sim.operator.alpha`
+  - `gsm.operator.numeric`
+  - `gsm.operator.iso-country`
+  - `gsm.operator.alpha`
+- APatch 下优先使用原生 `resetprop -w` 事件监听；Telephony/RIL 覆盖属性后自动恢复，不再只在开机后固定 120 秒重复写入。
+- WebUI 使用单行 JSON 返回完整状态，修复 APatch 同步 `exec()` 只返回 stdout 最后一行时，界面只有最后一个属性可见的问题。
+- WebUI 国家与运营商改为下拉预设，MCC/MNC 自动联动，不需要手工填写。
+- 升级模块时保留现有 `config.conf`。
+- 显示 Root 管理器、Android API、LineageOS 版本、resetprop 路径、监控模式和服务状态。
+
+## 国家 / 运营商预设
+
+- `us`：T-Mobile、AT&T、Verizon
+- `au`：Telstra、Optus、Vodafone AU
+- `ca`：Rogers、Bell、TELUS
+- `de`：Telekom DE、Vodafone DE、O2 Germany
+- `jp`：NTT DOCOMO、au (KDDI)、SoftBank、Rakuten Mobile
+- `kr`：SK Telecom、KT、LG U+
+- `uk`：EE、O2 UK、Vodafone UK、Three UK
+
+英国在界面中保留用户熟悉的 `uk` 标识，但 Android Telephony 属性实际写入标准 ISO-3166 alpha-2 值 `gb`。
+
+## APatch 运行机制
+
+1. `system.prop` 在早期开机阶段提供初始属性。
+2. `post-fs-data.sh` 同步当前配置并执行一次属性修复。
+3. `service.sh` 等待系统启动和 Telephony 第一轮初始化。
+4. APatch 支持 `resetprop -w` 时，为六个核心 Telephony 属性建立事件监听。
+5. 任一属性被 Telephony/RIL 改动后，仅在需要时重新应用目标值。
+6. 如果运行环境没有 property wait 能力，则使用低频回退轮询。
 
 ## 默认配置
 
-```text
-MCC: 310
-MNC: 260
-ISO: us
-运营商: T-Mobile
-SIM 槽数量: 2
-回退检查间隔: 15 秒
+```sh
+TARGET_MCC=310
+TARGET_MNC=260
+TARGET_ISO=us
+TARGET_ALPHA='T-Mobile'
+SLOT_COUNT=2
+WATCH_INTERVAL=15
+TELEPHONY_SETTLE_SECONDS=8
+LEGACY_SLOT_PROPS=0
 ```
 
-配置文件：
+WebUI 会根据国家和运营商自动生成前四项。
+
+## 安装
+
+在 APatch 管理器中安装模块 ZIP，然后重启。
+
+升级同一个模块时，安装脚本会尽量保留已有的：
 
 ```text
 /data/adb/modules/sim_country_spoofer/config.conf
 ```
 
-## 核心属性
+## 检查状态
 
-Android 16 / LineageOS 23.2 默认维护以下标准 Telephony 属性：
+可以直接从 APatch 打开模块 WebUI，也可以执行：
 
-```text
-gsm.sim.operator.numeric
-gsm.sim.operator.iso-country
-gsm.sim.operator.alpha
-gsm.operator.numeric
-gsm.operator.iso-country
-gsm.operator.alpha
+```sh
+sh /data/adb/modules/sim_country_spoofer/action.sh
 ```
 
-双卡配置会使用标准的逗号分隔形式，例如：
-
-```text
-gsm.sim.operator.numeric=310260,310260
-gsm.sim.operator.iso-country=us,us
-```
-
-旧版使用的 `gsm.*.0` / `gsm.*.1` 形式在本版默认关闭；如确实有特殊 ROM 需要，可在 `config.conf` 将 `LEGACY_SLOT_PROPS=1`。
-
-## APatch 运行流程
-
-```text
-system.prop 早期加载
-        ↓
-post-fs-data 再同步一次
-        ↓
-等待 sys.boot_completed
-        ↓
-等待 Telephony 第一轮 SIM/网络属性
-        ↓
-应用目标 MCC/MNC/ISO/运营商
-        ↓
-APatch resetprop -w 事件监听
-        ↓
-属性被 Telephony/RIL 改回时立即修复
-```
-
-APatch 当前原生提供 Magisk-compatible `resetprop`，本版会自动检测其 `--wait` 能力；不支持时自动回退到轮询模式。
-
-## 检查
-
-在 APatch 中打开模块 WebUI，六个 Telephony 属性应显示 `OK`。
-
-也可以使用：
+或：
 
 ```sh
 getprop gsm.sim.operator.numeric
@@ -89,12 +82,10 @@ getprop gsm.operator.iso-country
 getprop gsm.operator.alpha
 ```
 
-或者点击 APatch 模块的 Action 查看诊断信息。
+## 说明
 
-## 边界
+这是 property-level spoof。它不会修改真实 IMSI、ICCID、SubscriptionInfo、CarrierConfig、eSIM profile 或基带身份信息。应用如果使用这些来源、IP、GPS、账户地区或服务端地区信息，仍可能识别真实位置。
 
-这是 **system property 层** 的 SIM / 运营商国家伪装。它不会修改真实 IMSI、ICCID、eSIM Profile、SubscriptionInfo、CarrierConfig、基带身份、IP、GPS 或账号地区。应用如果读取这些其它来源，仍可能得到真实信息。
-
-## 许可证
+## License
 
 MIT
