@@ -1,0 +1,7 @@
+# SIM Country Spoofer - early boot defaults. WebUI regenerates this file when configuration changes.
+gsm.sim.operator.numeric=310260,310260
+gsm.sim.operator.iso-country=us,us
+gsm.sim.operator.alpha=T-Mobile,T-Mobile
+gsm.operator.numeric=310260,310260
+gsm.operator.iso-country=us,us
+gsm.operator.alpha=T-Mobile,T-Mobile

@@ -1,6 +1,6 @@
 id=sim_country_spoofer
-name=SIM Country Spoofer
-version=1.1
-versionCode=2
-author=扶摇
-description=Spoofs common Android SIM/operator country properties at boot with configurable MCC/MNC/ISO values and a KsuWebUI interface.
+name=SIM Country Spoofer A16
+version=2.1-A16-APatch
+versionCode=4
+author=XiNyE & Chatgpt
+description=Android 16 / LineageOS 23.2 optimized SIM/operator property spoofer with APatch event watching, carrier presets, automatic MCC/MNC selection, and native WebUI status support.
