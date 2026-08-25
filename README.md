@@ -1,71 +1,91 @@
-# SIM Country Spoofer
+# SIM Country Spoofer A16
 
-SIM Country Spoofer is a Magisk / Magisk Alpha module that rewrites common Android SIM and operator country properties at boot. It also includes a KsuWebUIStandalone-compatible visual interface for editing MCC, MNC, ISO country, and carrier name.
+An Android system-property SIM/operator country spoofer optimized for **APatch + Android 16 / LineageOS 23.2**, with fallback compatibility for Magisk/KernelSU environments.
 
-## Features
+## Android 16 / APatch changes
 
-- Spoofs common SIM/operator properties such as `gsm.sim.operator.numeric` and `gsm.sim.operator.iso-country`
-- Applies values during boot and reapplies them shortly after Android finishes starting
-- Supports dual-SIM style comma-separated properties
-- Includes a KsuWebUIStandalone WebUI at `webroot/index.html`
-- Can still be configured manually through `config.conf`
+- Fixes the APatch WebUI issue where synchronous `exec()` only returns the command's final stdout line. Status is now emitted as one JSON line.
+- Uses the canonical Android 16 TelephonyProperties keys and comma-separated per-phone values.
+- Adds `system.prop` for early APatch/Magisk property loading.
+- Re-applies once in `post-fs-data.sh`, then waits for the first Android Telephony snapshot after boot before enforcing the configured identity.
+- On APatch, uses native `resetprop -w` property-change waiting. If Telephony/RIL overwrites a value after boot, the module repairs it instead of stopping after a fixed 120-second window.
+- Falls back to a low-overhead polling watcher when `resetprop -w` is unavailable.
+- Writes only properties whose current value differs from the configured value.
+- WebUI displays root manager, Android API, LineageOS version, watcher mode, service state, and live OK/DIFF status for the six canonical properties.
 
-## Default Identity
+## Canonical properties
 
 ```text
-MCC/MNC: 310260
-ISO: us
-Carrier: T-Mobile
-Slots: 2
+gsm.sim.operator.numeric
+gsm.sim.operator.iso-country
+gsm.sim.operator.alpha
+gsm.operator.numeric
+gsm.operator.iso-country
+gsm.operator.alpha
 ```
 
-## Install
+For two phone slots, values use Android's normal comma-separated representation, for example:
 
-1. Download the ZIP from GitHub Releases.
-2. Install it in Magisk / Magisk Alpha.
-3. Reboot.
-4. Open KsuWebUIStandalone and refresh the module list.
+```text
+gsm.sim.operator.numeric=310260,310260
+gsm.sim.operator.iso-country=us,us
+```
 
-## Manual Config
+Legacy `.0/.1` property names are disabled by default and can be enabled with `LEGACY_SLOT_PROPS=1` only for ROM-specific compatibility.
 
-Edit:
+## Default configuration
+
+```text
+MCC=310
+MNC=260
+ISO=us
+Carrier=T-Mobile
+Slots=2
+Fallback watcher interval=15 seconds
+```
+
+Configuration file:
 
 ```text
 /data/adb/modules/sim_country_spoofer/config.conf
 ```
 
-Example for Japan / NTT DOCOMO:
+## Runtime flow on APatch
 
-```sh
-TARGET_MCC=440
-TARGET_MNC=10
-TARGET_ISO=jp
-TARGET_ALPHA="NTT DOCOMO"
-SLOT_COUNT=2
-REAPPLY_SECONDS=120
-REAPPLY_INTERVAL=5
+```text
+system.prop early load
+        ↓
+post-fs-data synchronization
+        ↓
+wait for sys.boot_completed
+        ↓
+wait for first Telephony SIM/network snapshot
+        ↓
+enforce configured properties
+        ↓
+APatch resetprop -w event watchers
+        ↓
+repair if Telephony/RIL changes a property
 ```
 
-Then reboot, or apply immediately as root:
+## Verify
 
-```sh
-sh /data/adb/modules/sim_country_spoofer/service.sh
-```
+Open the module WebUI from APatch. All six Telephony property rows should show `OK`.
 
-## Check Values
+Or check manually:
 
 ```sh
 getprop gsm.sim.operator.numeric
 getprop gsm.sim.operator.iso-country
+getprop gsm.sim.operator.alpha
 getprop gsm.operator.numeric
 getprop gsm.operator.iso-country
+getprop gsm.operator.alpha
 ```
 
-## Notes
+## Scope
 
-Some apps read Android system properties, while others check telephony framework responses, IP geolocation, GPS, account region, Google services, Wi-Fi, or real subscription data. This module only changes common SIM/operator properties, so it may not affect every region check.
-
-Use this module only where it is lawful and consistent with the services you use.
+This is a **system-property-level** spoofer. It does not modify the real IMSI, ICCID, eSIM profile, SubscriptionInfo, CarrierConfig, modem identity, IP address, GPS location, or account region.
 
 ## License
 
