@@ -3,457 +3,62 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SIM Country Spoofer</title>
+  <title>SIM Country Spoofer A16</title>
   <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #f6f7f4;
-      --panel: #ffffff;
-      --text: #18201d;
-      --muted: #5d6863;
-      --line: #dbe1dc;
-      --accent: #0f766e;
-      --accent-strong: #0b5f59;
-      --warn: #9a3412;
-      --ok: #166534;
-      --field: #f9faf8;
-      --shadow: 0 12px 30px rgba(24, 32, 29, .08);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #101412;
-        --panel: #191f1c;
-        --text: #eef4ef;
-        --muted: #a8b5ad;
-        --line: #303a35;
-        --field: #111714;
-        --shadow: 0 12px 28px rgba(0, 0, 0, .35);
-      }
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    main {
-      width: min(760px, 100%);
-      margin: 0 auto;
-      padding: 22px 16px 32px;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      align-items: center;
-      margin-bottom: 18px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      line-height: 1.15;
-      letter-spacing: 0;
-    }
-
-    .sub {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      padding: 16px;
-      margin-bottom: 14px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    label {
-      display: grid;
-      gap: 7px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    input, select {
-      width: 100%;
-      min-height: 46px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--field);
-      color: var(--text);
-      padding: 10px 12px;
-      font: inherit;
-      letter-spacing: 0;
-    }
-
-    input:focus, select:focus {
-      outline: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
-      border-color: var(--accent);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 16px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      min-height: 44px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 0 14px;
-      background: var(--panel);
-      color: var(--text);
-      font: inherit;
-      font-weight: 650;
-    }
-
-    button.primary {
-      border-color: var(--accent);
-      background: var(--accent);
-      color: white;
-    }
-
-    button:active { transform: translateY(1px); }
-
-    .status {
-      display: grid;
-      gap: 9px;
-      font-size: 13px;
-    }
-
-    .row {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      border-bottom: 1px solid var(--line);
-      padding-bottom: 8px;
-    }
-
-    .row:last-child {
-      border-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    code {
-      color: var(--text);
-      overflow-wrap: anywhere;
-    }
-
-    .message {
-      min-height: 22px;
-      color: var(--muted);
-      font-size: 14px;
-      margin-top: 12px;
-    }
-
-    .message.ok { color: var(--ok); }
-    .message.warn { color: var(--warn); }
-
-    @media (max-width: 560px) {
-      header {
-        display: block;
-      }
-
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      button {
-        flex: 1 1 150px;
-      }
-    }
+    :root { color-scheme: light dark; --bg:#f6f7f4;--panel:#fff;--text:#18201d;--muted:#5d6863;--line:#dbe1dc;--accent:#0f766e;--ok:#166534;--warn:#9a3412;--field:#f9faf8;--shadow:0 12px 30px rgba(24,32,29,.08); }
+    @media (prefers-color-scheme:dark){:root{--bg:#101412;--panel:#191f1c;--text:#eef4ef;--muted:#a8b5ad;--line:#303a35;--field:#111714;--shadow:0 12px 28px rgba(0,0,0,.35)}}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    main{width:min(780px,100%);margin:0 auto;padding:22px 16px 32px}h1{margin:0;font-size:24px;line-height:1.15}.sub{margin:6px 0 18px;color:var(--muted);font-size:14px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    label{display:grid;gap:7px;color:var(--muted);font-size:13px}input,select{width:100%;min-height:46px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--text);padding:10px 12px;font:inherit}
+    input:focus,select:focus{outline:2px solid color-mix(in srgb,var(--accent) 42%,transparent);border-color:var(--accent)}.actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+    button{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:0 14px;background:var(--panel);color:var(--text);font:inherit;font-weight:650}button.primary{border-color:var(--accent);background:var(--accent);color:#fff}button:active{transform:translateY(1px)}
+    .message{min-height:22px;color:var(--muted);font-size:14px;margin-top:12px}.message.ok{color:var(--ok)}.message.warn{color:var(--warn)}
+    .section-title{font-size:14px;font-weight:700;margin:0 0 10px}.status{display:grid;gap:0}.row{display:grid;grid-template-columns:minmax(145px,.9fr) minmax(0,1.3fr) auto;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:10px 0}.row:last-child{border-bottom:0}.row span{color:var(--muted);font-size:13px}.row code{overflow-wrap:anywhere;color:var(--text);font-size:13px}.badge{font-size:11px;font-weight:700;border-radius:999px;padding:3px 7px}.badge.ok{color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}.badge.warn{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
+    @media(max-width:560px){.grid{grid-template-columns:1fr}button{flex:1 1 150px}.row{grid-template-columns:1fr auto}.row code{grid-column:1/3}.row span{grid-column:1/2}.badge{grid-column:2/3;grid-row:1}}
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <div>
-        <h1>SIM Country Spoofer</h1>
-        <p class="sub">修改 SIM / 运营商国家码，保存后立即应用，重启后自动生效。</p>
-      </div>
-    </header>
+<main>
+  <h1>SIM Country Spoofer A16</h1>
+  <p class="sub">APatch / Android 16 / LineageOS 23.2：事件监听 Telephony 属性变化，保存后立即应用。</p>
 
-    <section class="panel">
-      <div class="grid">
-        <label>
-          国家码 MCC
-          <input id="mcc" inputmode="numeric" maxlength="3" placeholder="310">
-        </label>
-        <label>
-          网络码 MNC
-          <input id="mnc" inputmode="numeric" maxlength="3" placeholder="260">
-        </label>
-        <label>
-          ISO 国家
-          <input id="iso" maxlength="2" placeholder="us">
-        </label>
-        <label>
-          运营商名称
-          <input id="alpha" maxlength="48" placeholder="T-Mobile">
-        </label>
-        <label>
-          SIM 槽数量
-          <select id="slots">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-          </select>
-        </label>
-        <label>
-          开机重复应用时长
-          <select id="seconds">
-            <option value="60">60 秒</option>
-            <option value="120">120 秒</option>
-            <option value="180">180 秒</option>
-            <option value="300">300 秒</option>
-          </select>
-        </label>
-      </div>
+  <section class="panel">
+    <div class="grid">
+      <label>国家码 MCC<input id="mcc" inputmode="numeric" maxlength="3" placeholder="310"></label>
+      <label>网络码 MNC<input id="mnc" inputmode="numeric" maxlength="3" placeholder="260"></label>
+      <label>ISO 国家<input id="iso" maxlength="2" placeholder="us"></label>
+      <label>运营商名称<input id="alpha" maxlength="48" placeholder="T-Mobile"></label>
+      <label>SIM 槽数量<select id="slots"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+      <label>回退检查间隔<select id="interval"><option value="5">5 秒</option><option value="10">10 秒</option><option value="15">15 秒</option><option value="30">30 秒</option><option value="60">60 秒</option></select></label>
+    </div>
+    <div class="actions"><button class="primary" id="save">保存并立即应用</button><button id="refresh">刷新当前状态</button></div>
+    <div class="message" id="message"></div>
+  </section>
 
-      <div class="actions">
-        <button class="primary" id="save">保存并立即应用</button>
-        <button id="refresh">刷新当前状态</button>
-      </div>
-      <div class="message" id="message"></div>
-    </section>
-
-    <section class="panel status" id="status"></section>
-  </main>
-
-  <script>
-    const MODULE = "/data/adb/modules/sim_country_spoofer/webui.sh";
-    const fields = {
-      mcc: document.getElementById("mcc"),
-      mnc: document.getElementById("mnc"),
-      iso: document.getElementById("iso"),
-      alpha: document.getElementById("alpha"),
-      slots: document.getElementById("slots"),
-      seconds: document.getElementById("seconds"),
-    };
-    const message = document.getElementById("message");
-    const statusBox = document.getElementById("status");
-
-    function shellQuote(value) {
-      return "'" + String(value).replace(/'/g, "'\\''") + "'";
-    }
-
-    function getBridge() {
-      const candidates = [
-        window.ksu,
-        window.kernelsu,
-        window.KSU,
-        window.apatch,
-      ];
-
-      return candidates.find((bridge) => bridge && typeof bridge.exec === "function");
-    }
-
-    function invokeExec(call) {
-      return new Promise((resolve, reject) => {
-        let settled = false;
-        const timer = setTimeout(() => fail(new Error("WebUI 执行接口没有返回结果。")), 5000);
-        const finish = (value) => {
-          if (!settled) {
-            settled = true;
-            clearTimeout(timer);
-            resolve(normalizeResult(value));
-          }
-        };
-        const fail = (error) => {
-          if (!settled) {
-            settled = true;
-            clearTimeout(timer);
-            reject(error);
-          }
-        };
-        const callback = (code, stdout, stderr) => finish({ errno: code, stdout, stderr });
-
-        try {
-          const result = call(callback);
-          if (result && typeof result.then === "function") {
-            result.then(finish).catch(fail);
-            return;
-          }
-          if (result !== undefined) {
-            finish(result);
-          }
-        } catch (error) {
-          fail(error);
-        }
-      });
-    }
-
-    async function run(command) {
-      const bridge = getBridge();
-      if (!bridge) {
-        throw new Error("当前 WebUI 环境没有提供 root 执行接口。请从 KsuWebUI 打开本模块。");
-      }
-
-      const attempts = [
-        (callback) => bridge.exec(command, "{}", callback),
-        (callback) => bridge.exec(command, callback),
-        () => bridge.exec(command),
-      ];
-
-      let lastError;
-      for (const attempt of attempts) {
-        try {
-          return await invokeExec(attempt);
-        } catch (error) {
-          lastError = error;
-        }
-      }
-
-      throw lastError || new Error("WebUI 执行接口不可用。");
-    }
-
-    function normalizeResult(result) {
-      if (typeof result === "string") {
-        try {
-          return normalizeResult(JSON.parse(result));
-        } catch {
-          return { errno: 0, stdout: result, stderr: "" };
-        }
-      }
-
-      return {
-        errno: Number(result && (result.errno ?? result.code ?? 0)),
-        stdout: String(result && (result.stdout ?? result.out ?? "")),
-        stderr: String(result && (result.stderr ?? result.err ?? "")),
-      };
-    }
-
-    async function exec(command) {
-      const result = normalizeResult(await run(command));
-      if (result.errno !== 0) {
-        throw new Error(result.stderr || result.stdout || "命令执行失败");
-      }
-      return result.stdout;
-    }
-
-    function parseKeyValues(text) {
-      const data = {};
-      text.split(/\r?\n/).forEach((line) => {
-        const index = line.indexOf("=");
-        if (index > 0) {
-          data[line.slice(0, index)] = line.slice(index + 1);
-        }
-      });
-      return data;
-    }
-
-    function setMessage(text, type = "") {
-      message.textContent = text;
-      message.className = "message " + type;
-    }
-
-    function fillForm(data) {
-      fields.mcc.value = data.TARGET_MCC || "310";
-      fields.mnc.value = data.TARGET_MNC || "260";
-      fields.iso.value = data.TARGET_ISO || "us";
-      fields.alpha.value = data.TARGET_ALPHA || "T-Mobile";
-      fields.slots.value = data.SLOT_COUNT || "2";
-      fields.seconds.value = data.REAPPLY_SECONDS || "120";
-    }
-
-    function renderStatus(data) {
-      const pairs = [
-        ["配置 MCC/MNC", `${data.TARGET_MCC || ""}${data.TARGET_MNC || ""}`],
-        ["配置 ISO", data.TARGET_ISO || ""],
-        ["当前 SIM MCC/MNC", data.PROP_SIM_NUMERIC || ""],
-        ["当前 SIM ISO", data.PROP_SIM_ISO || ""],
-        ["当前运营商 MCC/MNC", data.PROP_OPERATOR_NUMERIC || ""],
-        ["当前运营商 ISO", data.PROP_OPERATOR_ISO || ""],
-      ];
-
-      statusBox.innerHTML = pairs.map(([label, value]) => `
-        <div class="row"><span>${label}</span><code>${value || "-"}</code></div>
-      `).join("");
-    }
-
-    function validate() {
-      const mcc = fields.mcc.value.trim();
-      const mnc = fields.mnc.value.trim();
-      const iso = fields.iso.value.trim().toLowerCase();
-      const alpha = fields.alpha.value.trim();
-
-      if (!/^[0-9]{3}$/.test(mcc)) throw new Error("MCC 必须是 3 位数字。");
-      if (!/^[0-9]{2,3}$/.test(mnc)) throw new Error("MNC 必须是 2 或 3 位数字。");
-      if (!/^[a-z]{2}$/.test(iso)) throw new Error("ISO 国家必须是 2 个英文字母，例如 us、gb、jp。");
-      if (!alpha || /[\r\n]/.test(alpha)) throw new Error("运营商名称不能为空，也不能包含换行。");
-
-      return {
-        mcc,
-        mnc,
-        iso,
-        alpha,
-        slots: fields.slots.value,
-        seconds: fields.seconds.value,
-        interval: "5",
-      };
-    }
-
-    async function refresh() {
-      setMessage("正在读取当前配置...");
-      const output = await exec(`sh ${shellQuote(MODULE)} read`);
-      const data = parseKeyValues(output);
-      fillForm(data);
-      renderStatus(data);
-      setMessage("已刷新。", "ok");
-    }
-
-    async function save() {
-      try {
-        const data = validate();
-        setMessage("正在保存并应用...");
-        const command = [
-          "sh",
-          shellQuote(MODULE),
-          "apply",
-          shellQuote(data.mcc),
-          shellQuote(data.mnc),
-          shellQuote(data.iso),
-          shellQuote(data.alpha),
-          shellQuote(data.slots),
-          shellQuote(data.seconds),
-          shellQuote(data.interval),
-        ].join(" ");
-        const output = await exec(command);
-        const parsed = parseKeyValues(output);
-        fillForm(parsed);
-        renderStatus(parsed);
-        setMessage("已保存并立即应用，重启后也会自动应用。", "ok");
-      } catch (error) {
-        setMessage(error.message, "warn");
-      }
-    }
-
-    document.getElementById("save").addEventListener("click", save);
-    document.getElementById("refresh").addEventListener("click", () => {
-      refresh().catch((error) => setMessage(error.message, "warn"));
-    });
-
-    refresh().catch((error) => setMessage(error.message, "warn"));
-  </script>
+  <section class="panel"><div class="section-title">运行环境</div><div class="status" id="environment"></div></section>
+  <section class="panel"><div class="section-title">Android 16 Telephony 属性</div><div class="status" id="status"></div></section>
+</main>
+<script>
+  const MODULE = "/data/adb/modules/sim_country_spoofer/webui.sh";
+  const fields = {mcc:document.getElementById("mcc"),mnc:document.getElementById("mnc"),iso:document.getElementById("iso"),alpha:document.getElementById("alpha"),slots:document.getElementById("slots"),interval:document.getElementById("interval")};
+  const message=document.getElementById("message"),environment=document.getElementById("environment"),statusBox=document.getElementById("status");
+  function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
+  function getBridge(){return [window.ksu,window.kernelsu,window.KSU,window.apatch].find(b=>b&&typeof b.exec==="function")}
+  function normalizeResult(result){if(typeof result==="string")return{errno:0,stdout:result,stderr:""};return{errno:Number(result&&(result.errno??result.code??0)),stdout:String(result&&(result.stdout??result.out??"")),stderr:String(result&&(result.stderr??result.err??""))}}
+  function invokeExec(call){return new Promise((resolve,reject)=>{let settled=false;const finish=v=>{if(!settled){settled=true;clearTimeout(timer);resolve(normalizeResult(v))}},fail=e=>{if(!settled){settled=true;clearTimeout(timer);reject(e)}},timer=setTimeout(()=>fail(new Error("WebUI 执行接口没有返回结果。")),3500),cb=(code,stdout,stderr)=>finish({errno:code,stdout,stderr});try{const r=call(cb);if(r&&typeof r.then==="function"){r.then(finish).catch(fail);return}if(r!==undefined)finish(r)}catch(e){fail(e)}})}
+  async function run(command){const bridge=getBridge();if(!bridge)throw new Error("当前 WebUI 没有 root 执行接口。请从 APatch 模块页面打开 WebUI。");try{const r=bridge.exec(command);if(r&&typeof r.then==="function")return normalizeResult(await r);if(r!==undefined)return normalizeResult(r)}catch(_){ }let lastError;for(const attempt of[(cb)=>bridge.exec(command,"{}",cb),(cb)=>bridge.exec(command,cb)]){try{return await invokeExec(attempt)}catch(e){lastError=e}}throw lastError||new Error("WebUI 执行接口不可用。")}
+  async function exec(command){const r=normalizeResult(await run(command));if(r.errno!==0)throw new Error(r.stderr||r.stdout||"命令执行失败");return r.stdout}
+  function parsePayload(text){const lines=String(text).trim().split(/\r?\n/).filter(Boolean);if(!lines.length)throw new Error("模块没有返回状态。");try{return JSON.parse(lines[lines.length-1])}catch(e){throw new Error("无法解析模块状态："+lines[lines.length-1])}}
+  function setMessage(text,type=""){message.textContent=text;message.className="message "+type}
+  function fillForm(d){fields.mcc.value=d.TARGET_MCC||"310";fields.mnc.value=d.TARGET_MNC||"260";fields.iso.value=d.TARGET_ISO||"us";fields.alpha.value=d.TARGET_ALPHA||"T-Mobile";fields.slots.value=d.SLOT_COUNT||"2";fields.interval.value=d.WATCH_INTERVAL||"15"}
+  function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+  function row(label,value,state){const badge=state===undefined?"":`<b class="badge ${state?"ok":"warn"}">${state?"OK":"DIFF"}</b>`;return `<div class="row"><span>${esc(label)}</span><code>${esc(value||"-")}</code>${badge}</div>`}
+  function render(d){environment.innerHTML=[row("Root 管理器",d.ROOT_MANAGER),row("Android API",d.ANDROID_API),row("LineageOS",d.ROM_VERSION||"-"),row("resetprop",d.RESETPROP),row("监控模式",d.WATCH_MODE),row("服务状态",d.SERVICE_STATE,d.SERVICE_STATE==="running")].join("");statusBox.innerHTML=[row("SIM MCC/MNC",d.PROP_SIM_NUMERIC,d.PROP_SIM_NUMERIC===d.EXPECTED_NUMERIC),row("SIM ISO",d.PROP_SIM_ISO,d.PROP_SIM_ISO===d.EXPECTED_ISO),row("SIM 运营商",d.PROP_SIM_ALPHA,d.PROP_SIM_ALPHA===d.EXPECTED_ALPHA),row("网络 MCC/MNC",d.PROP_OPERATOR_NUMERIC,d.PROP_OPERATOR_NUMERIC===d.EXPECTED_NUMERIC),row("网络 ISO",d.PROP_OPERATOR_ISO,d.PROP_OPERATOR_ISO===d.EXPECTED_ISO),row("网络运营商",d.PROP_OPERATOR_ALPHA,d.PROP_OPERATOR_ALPHA===d.EXPECTED_ALPHA)].join("")}
+  function validate(){const mcc=fields.mcc.value.trim(),mnc=fields.mnc.value.trim(),iso=fields.iso.value.trim().toLowerCase(),alpha=fields.alpha.value.trim();if(!/^\d{3}$/.test(mcc))throw new Error("MCC 必须是 3 位数字。");if(!/^\d{2,3}$/.test(mnc))throw new Error("MNC 必须是 2 或 3 位数字。");if(!/^[a-z]{2}$/.test(iso))throw new Error("ISO 必须是 2 个英文字母，例如 us、gb、jp。");if(!alpha||/[\r\n\t]/.test(alpha))throw new Error("运营商名称不能为空，也不能包含控制字符。");return{mcc,mnc,iso,alpha,slots:fields.slots.value,interval:fields.interval.value}}
+  async function refresh(){setMessage("正在读取当前配置...");const d=parsePayload(await exec(`sh ${shellQuote(MODULE)} read`));fillForm(d);render(d);setMessage("已刷新。","ok")}
+  async function save(){try{const d=validate();setMessage("正在保存并应用...");const cmd=["sh",shellQuote(MODULE),"apply",shellQuote(d.mcc),shellQuote(d.mnc),shellQuote(d.iso),shellQuote(d.alpha),shellQuote(d.slots),shellQuote(d.interval)].join(" ");const data=parsePayload(await exec(cmd));fillForm(data);render(data);setMessage("已保存并立即应用；APatch 会持续监听 Telephony 覆盖并自动修复。","ok")}catch(e){setMessage(e.message,"warn")}}
+  document.getElementById("save").addEventListener("click",save);document.getElementById("refresh").addEventListener("click",()=>refresh().catch(e=>setMessage(e.message,"warn")));refresh().catch(e=>setMessage(e.message,"warn"));
+</script>
 </body>
 </html>
