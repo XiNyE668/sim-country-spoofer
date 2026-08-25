@@ -1,0 +1,44 @@
+name: Package Android 16 APatch module
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - android16-lineage23.2-apatch
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate shell scripts
+        run: |
+          set -e
+          for f in *.sh; do
+            bash -n "$f"
+          done
+
+      - name: Build APatch module ZIP
+        run: |
+          set -e
+          rm -rf out stage
+          mkdir -p out stage/webroot
+          cp module.prop customize.sh common.sh config.conf post-fs-data.sh service.sh system.prop uninstall.sh action.sh webui.sh stage/
+          cp webroot/index.html stage/webroot/
+          cp LICENSE README.md README_zh.md stage/
+          cd stage
+          zip -9 -r ../out/SIM-Country-Spoofer-2.1-A16-APatch-Lineage23.2-test2.zip .
+          cd ../out
+          sha256sum SIM-Country-Spoofer-2.1-A16-APatch-Lineage23.2-test2.zip > SIM-Country-Spoofer-2.1-A16-APatch-Lineage23.2-test2.zip.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SIM-Country-Spoofer-2.1-A16-APatch-test2
+          path: out/*
+          if-no-files-found: error
