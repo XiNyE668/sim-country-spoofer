@@ -1,37 +1,30 @@
-# XiNyE-WebRTC-Guard V2 (LSPosed 2.2)
+# XiNyE-WebRTC-Guard-V3 Safe Regression Fix
 
-## Scope recommendations (two entries)
-- io.github.xinye.webrtcguard — V1-compatible WebView self-test.
-- com.android.chrome — experimental browser-only IP-policy startup hook.
+This is an installable safety rollback, NOT a full Chrome WebRTC disable solution.
+The Chrome V2 experimental `force-webrtc-ip-handling-policy` injection is disabled
+because the user observed the real ISP public IP in Chrome WebRTC after V2.
+The injection may or may not have caused it; causality is not established.
 
-## Frozen WebView V1
-GuardHook.java and GuardPolicy.java are intentionally UNCHANGED.
-WebView DocumentStartScript protection is exactly V1 behavior, including
-limitations with independent Chromium/Chrome browsers and app calling.
+### Frozen
+- GuardHook.java, GuardPolicy.java byte-identical to V1.
+- No changes to KernelSU V3, singbox4root, DNS, iptables, WebView API blocking.
+- Same Android application ID; versionCode 3.
 
-## Chrome V2
-ChromeGuardHook.java is isolated from the frozen WebView hook.
-At startup the hook attempts to append:
---force-webrtc-ip-handling-policy=disable_non_proxied_udp
+### Recommended LSPosed scopes
+- com.android.webview — user-tested V1 WebView configuration restored.
+- com.android.chrome — **diagnostic-only**; no Chrome WebRTC prevention.
+Select WebView host apps separately if needed; WebView provider scope alone
+does not guarantee hooks run in every WebView-using app.
+The module's own application ID is not a selectable scope on some LSPosed versions.
 
-Chrome 156 exposes a Chromium IP-handling policy switch, but this does not
-guarantee complete disablement of RTCPeerConnection or zero ICE host candidates.
-Modern Chromium has removed the historic --disable-webrtc switch.
-No native libwebrtc patching; no global iptables changes. WebRTC call sites may
-fail if the IP policy takes effect.
+### Security
+DO NOT infer Chrome safety from the module's enabled state. A website may
+still report the ISP IP, including via WebRTC TCP/TURN or VPN bypass.
+For WebRTC ISP-IP leak use a proven browser-side protection option and
+check the singbox4root/KSU routing configuration.
+Chrome V2 command-line experiments are removed rather than widened.
 
-## Tests
-1. Uninstall V1 first ONLY if Android reports a different APK signature.
-   The package ID stays io.github.xinye.webrtcguard and versionCode increases to 2.
-2. Install APK and enable both suggested LSPosed scopes, self app and Chrome.
-3. Force-stop the module app and Chrome, then relaunch (Chrome multi-process may require reboot).
-4. In module app run V1 WebView test: PASS must be preserved.
-5. Open Chrome > chrome://version, look for force-webrtc-ip-handling-policy.
-6. Then compare ipleak.net candidates Chrome and normal internet access.
-7. Inspect LSPosed log for [XiNyE-WebRTC-Guard V2/Chrome].
-Do NOT claim Chrome is protected merely because the command-line hook installed.
-Use your KSU V3 as before; Chrome-specific component must be verified separately.
-
-## Rollback
-Disable Chrome scope in LSPosed and force-stop Chrome.
-The WebView V1 test remains available. Uninstall V2 / reinstall V1 if necessary.
+### Upgrade / rollback
+If an Android debug key differs, uninstall the old APK first then install V3.
+This loses Android app settings for XiNyE app but does not modify KSU.
+Re-enable LSPosed module and scopes, reboot, test WebView and Chrome separately.
