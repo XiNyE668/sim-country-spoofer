@@ -31,6 +31,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           mkdir -p deliverables
           mv XiNyE-WebRTC-Network-V1-GitHub.zip deliverables/
-          git add deliverables/XiNyE-WebRTC-Network-V1-GitHub.zip
+          git add -f deliverables/XiNyE-WebRTC-Network-V1-GitHub.zip
           git commit -m 'build: publish KernelSU flashable ZIP [skip ci]' || exit 0
           git push origin HEAD:build/xinye-webrtc-guard-v1
