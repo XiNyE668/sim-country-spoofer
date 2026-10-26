@@ -71,7 +71,7 @@ public final class ChromeDexScanner {
       if(!file.isFile()){parseFails++;out.append("UNREADABLE_CODE_SPLIT=").append(file.getName()).append('\n');continue;}
       try {
         MultiDexContainer<? extends DexFile> container=
-            DexFileFactory.loadDexContainer(archive, Opcodes.forApi(Build.VERSION.SDK_INT));
+            DexFileFactory.loadDexContainer(file, Opcodes.forApi(Build.VERSION.SDK_INT));
         for(String entryName:container.getDexEntryNames()){
           if(!entryName.matches("classes([0-9]+)?\\.dex")) continue;
           dexEntries++;
