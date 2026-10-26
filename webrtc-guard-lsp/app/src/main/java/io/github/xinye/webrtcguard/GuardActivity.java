@@ -14,10 +14,13 @@ public final class GuardActivity extends Activity {
   super.onCreate(b);
   LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
   root.setBackgroundColor(Color.WHITE);root.setPadding(24,24,24,24);
-  TextView title=new TextView(this);title.setText("XiNyE WebRTC Guard V1");title.setTextColor(Color.BLACK);title.setTextSize(20);root.addView(title);
+  TextView title=new TextView(this);title.setText("XiNyE WebRTC Guard V3");title.setTextColor(Color.BLACK);title.setTextSize(20);root.addView(title);
   TextView info=new TextView(this);info.setTextColor(Color.DKGRAY);
   boolean supported=false;try{supported=WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT);}catch(Throwable ignored){}
-  info.setText("DOCUMENT_START_SCRIPT available: "+supported+"\nLSPosed: enable module and scope this app, then force stop/restart.\nChrome/Firefox and native WebRTC are not covered.");
+  info.setText("DOCUMENT_START_SCRIPT available: "+supported+
+    "\nRecommended LSPosed scopes: Android System WebView + Chrome."+
+    "\nWebView V1 hook frozen; Chrome observer JS injection is experimental."+
+    "\nChrome NOT verified: check ipleak.net and LSPosed logs for JS check=BLOCKED.");
   root.addView(info);
   Button local=new Button(this);local.setText("Test local WebRTC constructor");root.addView(local);
   Button online=new Button(this);online.setText("Test ipleak.net in this WebView");root.addView(online);
