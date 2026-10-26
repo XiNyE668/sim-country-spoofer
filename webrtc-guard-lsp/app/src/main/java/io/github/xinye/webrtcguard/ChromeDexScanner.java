@@ -48,7 +48,7 @@ public final class ChromeDexScanner {
 
   public static String scan(Context c) {
     StringBuilder out=new StringBuilder(8192);
-    out.append("XiNyE WebRTC V7 Chrome APK structural compatibility audit\n");
+    out.append("XiNyE WebRTC V8 Chrome APK structural compatibility audit\n");
     out.append("TIME=").append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.US).format(new java.util.Date())).append('\n');
     out.append("ANDROID_SDK=").append(Build.VERSION.SDK_INT).append('\n');
     out.append("CHROME_IDENTITY=").append(identity(c)).append('\n');
@@ -103,7 +103,7 @@ public final class ChromeDexScanner {
                 +(signature>0?2:0)+(n>=45?1:0);
             if(signature>0 && n>=45 && longField)structurallySimilar++;
             if(score>=7) {
-              candidates.add(new Candidate(name+" [methods="+n+",String/interface="+signature
+              candidates.add(new Candidate(name+" [methods="+n+",String/reference="+signature
                   +",evalName="+hasEval+",navName="+hasNamedNav+"]",score));
             }
           }

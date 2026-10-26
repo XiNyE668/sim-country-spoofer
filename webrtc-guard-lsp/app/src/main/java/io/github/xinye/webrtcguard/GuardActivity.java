@@ -21,13 +21,13 @@ import java.nio.charset.StandardCharsets;
 import androidx.webkit.WebViewFeature;
 
 /**
- * V7 fixes V5/V6's lost audit report on activity recreation.
+ * V8 fixes V5/V6's lost audit report on activity recreation.
  * IMPORTANT: runtime WebRTC suppression still needs Chrome real-device tests.
  */
 public final class GuardActivity extends Activity {
-  private static final int SAVE_REQUEST=1707;
-  private static final String PREFS="xinye_chrome_v7_audit";
-  private static final String CACHE="chrome_audit_v7.txt";
+  private static final int SAVE_REQUEST=1808;
+  private static final String PREFS="xinye_chrome_v8_audit";
+  private static final String CACHE="chrome_audit_v8.txt";
   private static final String P_ID="report_chrome_identity";
   private WebView web;
   private TextView state;
@@ -44,7 +44,7 @@ public final class GuardActivity extends Activity {
     root.setPadding(20,16,20,12);
     root.setBackgroundColor(Color.WHITE);
     TextView title=new TextView(this);
-    title.setText("XiNyE WebRTC Guard V7");
+    title.setText("XiNyE WebRTC Guard V8");
     title.setTextColor(Color.BLACK); title.setTextSize(20);
     root.addView(title);
     state=new TextView(this);
@@ -56,7 +56,7 @@ public final class GuardActivity extends Activity {
     scanButton.setText("Re-scan Chrome APK code");
     root.addView(scanButton);
     exportButton=new Button(this);
-    exportButton.setText("Export V7 Chrome audit TXT");
+    exportButton.setText("Export V8 Chrome audit TXT");
     root.addView(exportButton);
 
     Button browser=new Button(this);
@@ -99,7 +99,7 @@ public final class GuardActivity extends Activity {
 
     // V6's defect: cached Chrome version caused scan to be skipped, but report
     // was always initialized to NO_SCAN_YET on each Activity recreation.
-    // V7 persists and reloads the *actual report* and validates its identity.
+    // V8 persists and reloads the *actual report* and validates its identity.
     String identity=ChromeDexScanner.identity(getApplicationContext());
     report=readCachedReport(identity);
     if(hasValidReport(identity)){
@@ -107,7 +107,7 @@ public final class GuardActivity extends Activity {
         "\nChrome protection: NOT VERIFIED by this report."+
         "\nYou may export now; Chrome WebRTC must be checked separately.");
     }else{
-      show("No valid V7 audit for current Chrome. Auto-scanning installed APK code."+
+      show("No valid V8 audit for current Chrome. Auto-scanning installed APK code."+
         "\nChrome protection: NOT VERIFIED");
       startScan(false);
     }
@@ -117,7 +117,7 @@ public final class GuardActivity extends Activity {
 
   private boolean hasValidReport(String identity){
     return identity!=null && identity.equals(reportIdentity)
-      && report!=null && report.startsWith("XiNyE WebRTC V7 Chrome APK")
+      && report!=null && report.startsWith("XiNyE WebRTC V8 Chrome APK")
       && report.contains("DEX_ENTRIES=")
       && !report.contains("STATUS=NO_DEX_PARSABLE")
       && !report.contains("STATUS=CHROME_NOT_VISIBLE")
@@ -174,7 +174,7 @@ public final class GuardActivity extends Activity {
     Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT);
     intent.addCategory(Intent.CATEGORY_OPENABLE);
     intent.setType("text/plain");
-    intent.putExtra(Intent.EXTRA_TITLE,"XiNyE-WebRTC-V7-Chrome-Audit.txt");
+    intent.putExtra(Intent.EXTRA_TITLE,"XiNyE-WebRTC-V8-Chrome-Audit.txt");
     try{startActivityForResult(intent,SAVE_REQUEST);}
     catch(Exception e){show("Could not open save picker: "+e.getClass().getSimpleName());}
   }
@@ -200,7 +200,7 @@ public final class GuardActivity extends Activity {
         if(data==null || data.trim().isEmpty())
           throw new IllegalStateException("Scanner returned blank text");
       }catch(Throwable t){
-        StringBuilder err=new StringBuilder("XiNyE WebRTC V7 Chrome APK audit error\n");
+        StringBuilder err=new StringBuilder("XiNyE WebRTC V8 Chrome APK audit error\n");
         err.append("CHROME_IDENTITY=").append(requestedIdentity).append('\n');
         err.append("STATUS=SCAN_FAILED\n");
         err.append("EXCEPTION=").append(t.getClass().getName()).append('\n');
@@ -243,7 +243,7 @@ public final class GuardActivity extends Activity {
           launchSaveDialog();
         }
       });
-    },"XiNyE-Chrome-V7-Audit").start();
+    },"XiNyE-Chrome-V8-Audit").start();
   }
 
   private void testWebView(){
@@ -260,7 +260,7 @@ public final class GuardActivity extends Activity {
     if(request!=SAVE_REQUEST || result!=RESULT_OK || data==null || data.getData()==null)return;
     String toWrite=report;
     if(toWrite==null || toWrite.trim().length()<40){
-      toWrite="XiNyE WebRTC V7 Chrome audit error\nSTATUS=REPORT_MISSING\n"+
+      toWrite="XiNyE WebRTC V8 Chrome audit error\nSTATUS=REPORT_MISSING\n"+
         "CHROME_IDENTITY="+ChromeDexScanner.identity(this)+"\n"+
         "ACTION=Re-run scan and export. Capture Chrome runtime via ADB.\n";
     }

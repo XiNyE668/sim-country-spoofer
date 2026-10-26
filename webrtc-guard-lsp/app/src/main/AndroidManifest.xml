@@ -7,10 +7,10 @@
     <package android:name="com.android.webview"/>
     <package android:name="com.google.android.webview"/>
   </queries>
-  <application android:label="XiNyE WebRTC Guard V7" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true">
+  <application android:label="XiNyE WebRTC Guard V8" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true">
     <meta-data android:name="xposedmodule" android:value="true"/>
     <meta-data android:name="xposedminversion" android:value="82"/>
-    <meta-data android:name="xposeddescription" android:value="Frozen V1 WebView guard, runtime Chrome split-loader Hook, durable audit export with method signature matching and compatibility audit."/>
+    <meta-data android:name="xposeddescription" android:value="Frozen V1 WebView guard, V8 runtime Chrome WebContents registry association, signature-based JS mapping, durable audit export with method signature matching and compatibility audit."/>
     <meta-data android:name="xposedscope" android:value="com.android.webview;com.android.chrome"/>
     <activity android:name=".GuardActivity" android:exported="true">
       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>

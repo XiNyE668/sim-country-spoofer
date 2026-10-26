@@ -4,7 +4,10 @@ import android.app.Application;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.LongSparseArray;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
+import java.util.Map;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
@@ -18,7 +21,7 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
- * V6: runtime Chrome isolated-split classloader discovery + signature based
+ * V8: runtime Chrome isolated-split classloader and registry-based
  * JavaScript method selection, preserving frozen V1 WebView code.
  *
  * NOTE: Chromium's Java-side navigation callbacks may occur after the first
@@ -29,8 +32,9 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
   private static final String CHROME="com.android.chrome";
   private static final String OBS="org.chromium.content.browser.webcontents.WebContentsObserverProxy";
   private static final String CONTENTS="org.chromium.content.browser.webcontents.WebContentsImpl";
-  private static final String KEY="xinye_webrtc_webcontents_v6";
-  private static final String TAG="V6_CHROME ";
+  private static final String KEY="xinye_webrtc_webcontents_v8";
+  private static volatile Class<?> contentsClass;
+  private static final String TAG="V8_CHROME ";
   private static final ThreadLocal<Boolean> BUSY=new ThreadLocal<>();
   private static final Set<Class<?>> OBS_DONE=Collections.synchronizedSet(
       Collections.newSetFromMap(new WeakHashMap<Class<?>,Boolean>()));
@@ -180,7 +184,8 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
                 try{wc=XposedHelpers.callMethod(x.thisObject,"getWebContents");}
                 catch(Throwable ignored){}
               }
-              if(wc==null){log("CALLBACK event="+event+" no_webcontents");return;}
+              if(wc==null) wc=resolveFromRegistry(x.thisObject);
+              if(wc==null){log("CALLBACK event="+event+" no_webcontents registry_lookup_failed");return;}
               log("CALLBACK event="+event+" linked");
               runJavaScript(wc,event);
             }catch(Throwable e){log("CALLBACK_ERROR event="+event+" "+e.getClass().getSimpleName());}
@@ -194,6 +199,7 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
   }
 
   private static void installContents(Class<?> clazz,String origin,String process){
+    contentsClass=clazz;
     synchronized(CONTENTS_DONE) {if(!CONTENTS_DONE.add(clazz))return;}
     try {
       int count=XposedBridge.hookAllMethods(clazz,"addObserver",new XC_MethodHook(){
@@ -209,33 +215,105 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
       }).size();
       log("CONTENTS_ADD_OBSERVER_HOOK count="+count);
     }catch(Throwable e){log("CONTENTS_ADD_OBSERVER_ERROR="+e.getClass().getSimpleName());}
-    log("CONTENTS_INSTALL origin="+origin+" method_candidates="+countCandidates(clazz));
+    int registryFields=0;
+    for(Field f:clazz.getDeclaredFields()){
+      if(Modifier.isStatic(f.getModifiers()) &&
+        (LongSparseArray.class.isAssignableFrom(f.getType()) ||
+         Map.class.isAssignableFrom(f.getType())))registryFields++;
+    }
+    log("CONTENTS_INSTALL origin="+origin+" method_candidates="+countCandidates(clazz)
+      +" possible_static_registries="+registryFields);
   }
 
   /**
-   * R8 can rename evaluateJavaScript() but its Java signature often survives:
-   * void method(String code, callbackInterface).
-   * If 0 or >1 matches, do not guess or invoke. Fail visibly.
+   * Chromium WebContentsImpl normally keeps a static LongSparseArray mapping
+   * native pointers to its Java wrapper. The observed proxy can predate our
+   * hooks, making constructor hooks too late. Match the existing proxy by
+   * reference against all currently registered WebContentsImpl wrappers.
+   *
+   * Never enumerate URLs/tabs or invoke browser navigation methods.
    */
-  private static Method chooseEval(Class<?> clazz){
-    Method selected=null;
-    int total=0;
-    for(Method m:clazz.getDeclaredMethods()){
-      Class<?>[] params=m.getParameterTypes();
-      if(params.length!=2 || params[0]!=String.class || !params[1].isInterface()
-          || m.getReturnType()!=Void.TYPE || Modifier.isStatic(m.getModifiers()))continue;
-      selected=m;
-      total++;
-    }
-    if(total==1){try{selected.setAccessible(true);}catch(Throwable ignored){}return selected;}
+  private static Object resolveFromRegistry(Object observedProxy){
+    final Class<?> type=contentsClass;
+    if(type==null)return null;
+    try{
+      for(Field field:type.getDeclaredFields()){
+        if(!Modifier.isStatic(field.getModifiers()))continue;
+        Class<?> declared=field.getType();
+        if(!LongSparseArray.class.isAssignableFrom(declared)
+            && !Map.class.isAssignableFrom(declared))continue;
+        field.setAccessible(true);
+        Object container=field.get(null);
+        if(container==null)continue;
+        if(container instanceof LongSparseArray){
+          LongSparseArray<?> indexed=(LongSparseArray<?>)container;
+          for(int i=0;i<indexed.size();i++){
+            Object owner=indexed.valueAt(i);
+            if(type.isInstance(owner) && ownerHasProxy(owner,observedProxy)){
+              XposedHelpers.setAdditionalInstanceField(observedProxy,KEY,owner);
+              log("REGISTRY_ASSOCIATION=FOUND source=LongSparseArray");
+              return owner;
+            }
+          }
+        }else if(container instanceof Map){
+          for(Object owner:((Map<?,?>)container).values()){
+            if(type.isInstance(owner) && ownerHasProxy(owner,observedProxy)){
+              XposedHelpers.setAdditionalInstanceField(observedProxy,KEY,owner);
+              log("REGISTRY_ASSOCIATION=FOUND source=Map");
+              return owner;
+            }
+          }
+        }
+      }
+    }catch(Throwable e){log("REGISTRY_ASSOCIATION_ERROR="+e.getClass().getSimpleName());}
     return null;
   }
+
+  private static boolean ownerHasProxy(Object owner,Object proxy){
+    Class<?> cursor=owner.getClass();
+    while(cursor!=null && cursor!=Object.class){
+      for(Field f:cursor.getDeclaredFields()){
+        if(Modifier.isStatic(f.getModifiers()))continue;
+        if(!f.getType().isInstance(proxy))continue;
+        try{
+          f.setAccessible(true);
+          if(f.get(owner)==proxy)return true;
+        }catch(Throwable ignored){}
+      }
+      cursor=cursor.getSuperclass();
+    }
+    return false;
+  }
+
+  /**
+   * V5 DEX audit showed 1 void(String,reference) method on WebContentsImpl.
+   * V6 erroneously rejected it because the second parameter was not an
+   * interface. Resolve only when the non-static signature is UNIQUE.
+   */
+  private static Method chooseEval(Class<?> clazz){
+    Method unique=null;
+    int matches=0;
+    for(Method m:clazz.getDeclaredMethods()){
+      Class<?>[] p=m.getParameterTypes();
+      if(p.length!=2 || p[0]!=String.class || p[1].isPrimitive() ||
+          p[1]==String.class || m.getReturnType()!=Void.TYPE ||
+          Modifier.isStatic(m.getModifiers()) || Modifier.isAbstract(m.getModifiers()))continue;
+      unique=m;matches++;
+    }
+    if(matches==1){
+      try{unique.setAccessible(true);}catch(Throwable ignored){}
+      return unique;
+    }
+    return null;
+  }
+
   private static int countCandidates(Class<?> clazz){
     int n=0;
     for(Method m:clazz.getDeclaredMethods()){
       Class<?>[] p=m.getParameterTypes();
-      if(p.length==2 && p[0]==String.class && p[1].isInterface()
-         && m.getReturnType()==Void.TYPE && !Modifier.isStatic(m.getModifiers()))n++;
+      if(p.length==2 && p[0]==String.class && !p[1].isPrimitive()
+          && p[1]!=String.class && m.getReturnType()==Void.TYPE &&
+          !Modifier.isStatic(m.getModifiers()) && !Modifier.isAbstract(m.getModifiers()))n++;
     }
     return n;
   }
@@ -245,25 +323,39 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
       Method eval=chooseEval(contents.getClass());
       int count=countCandidates(contents.getClass());
       if(eval==null){log("JS_METHOD_NOT_UNIQUE candidates="+count+" event="+phase);return;}
-      Class<?> callbackClass=eval.getParameterTypes()[1];
-      Object callback=Proxy.newProxyInstance(callbackClass.getClassLoader(),
-          new Class<?>[]{callbackClass},new InvocationHandler(){
-        @Override public Object invoke(Object proxy,Method method,Object[] args){
-          if(method.getDeclaringClass()==Object.class){
-            if("toString".equals(method.getName()))return "XiNyEChromeV6Callback";
-            if("hashCode".equals(method.getName()))return System.identityHashCode(proxy);
-            if("equals".equals(method.getName()))return args!=null && args.length>0 && proxy==args[0];
-          }
-          if(args!=null && args.length>0 && args[0] instanceof String){
-            String v=(String)args[0];
-            log("JS_CALLBACK event="+phase+" state="
-              +(v.contains("STILL_AVAILABLE")?"STILL_AVAILABLE":v.contains("BLOCKED")?"BLOCKED":"UNKNOWN"));
-          } else log("JS_CALLBACK event="+phase+" no_string_result");
-          return null;
-        }
-      });
-      log("JS_SUBMIT event="+phase+" mapped_by_signature=YES");
+      Class<?> callbackType=eval.getParameterTypes()[1];
+      Object callback=null;
+      // JavaScriptCallback is an interface in upstream Chromium; R8 may
+      // alter its shape. Passing null is legal for optional callback APIs.
+      if(callbackType.isInterface()){
+        callback=Proxy.newProxyInstance(callbackType.getClassLoader(),
+          new Class<?>[]{callbackType},new InvocationHandler(){
+            @Override public Object invoke(Object proxy,Method method,Object[] args){
+              if(method.getDeclaringClass()==Object.class){
+                if("toString".equals(method.getName()))return "XiNyEChromeV8Callback";
+                if("hashCode".equals(method.getName()))return System.identityHashCode(proxy);
+                if("equals".equals(method.getName()))return args!=null && args.length>0 && proxy==args[0];
+              }
+              if(args!=null && args.length>0 && args[0] instanceof String){
+                String result=(String)args[0];
+                log("JS_CALLBACK event="+phase+" state="+
+                    (result.contains("STILL_AVAILABLE")?"STILL_AVAILABLE":
+                     result.contains("BLOCKED")?"BLOCKED":"UNKNOWN"));
+              }else log("JS_CALLBACK event="+phase+" no_string_result");
+              return null;
+            }
+          });
+      }else{
+        log("JS_CALLBACK_NOT_INTERFACE param2_type="+callbackType.getName()
+            +" using_null_callback=true");
+      }
+      log("JS_SUBMIT event="+phase+" method="+eval.getName()
+        +" mapped_by_unique_signature=YES");
       eval.invoke(contents,JS,callback);
-    }catch(Throwable e){log("JS_INVOKE_ERROR event="+phase+" kind="+e.getClass().getSimpleName());}
+      log("JS_METHOD_RETURN event="+phase+" (not a guarantee of execution)");
+    }catch(Throwable e){
+      log("JS_INVOKE_ERROR event="+phase+" kind="+e.getClass().getSimpleName()
+        +(e.getCause()==null?"":" cause="+e.getCause().getClass().getSimpleName()));
+    }
   }
 }
