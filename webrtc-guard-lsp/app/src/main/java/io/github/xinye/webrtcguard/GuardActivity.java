@@ -1,154 +1,144 @@
 package io.github.xinye.webrtcguard;
 
+import android.Manifest;
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
-import android.provider.Settings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.webkit.WebViewFeature;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 public final class GuardActivity extends Activity {
- private static final int EXPORT_REQUEST = 1404;
+ private static final int SAVE_REQUEST=1505;
  private WebView web;
- private TextView status;
- @Override public void onCreate(Bundle b) {
-  super.onCreate(b);
+ private TextView state;
+ private String report="NO_SCAN_YET\n";
+ private final String prefs="xinye_chrome_v5_monitor";
+
+ @Override public void onCreate(Bundle saved) {
+  super.onCreate(saved);
   LinearLayout root=new LinearLayout(this);
   root.setOrientation(LinearLayout.VERTICAL);
+  root.setPadding(20,16,20,12);
   root.setBackgroundColor(Color.WHITE);
-  root.setPadding(24,24,24,24);
-  TextView title=new TextView(this);
-  title.setText("XiNyE WebRTC Guard V4 Debug");
-  title.setTextColor(Color.BLACK); title.setTextSize(20);
-  root.addView(title);
-  TextView info=new TextView(this);
-  info.setTextColor(Color.DKGRAY);
-  boolean supported=false;
-  try { supported=WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT); }
-  catch(Throwable ignored) {}
-  info.setText("Frozen V1 WebView behavior: "+supported+
-      "\nLSPosed recommended scope: Android System WebView + Chrome."+
-      "\nChrome V3 injection is experimental: this build records stages."+
-      "\nAfter testing Chrome on ipleak.net, return here to export diagnostics."+
-      "\nExport reads only XiNyEWebRTC-tagged logs via KernelSU su."+
-      "\nNo visited URLs, identifiers, or WebRTC addresses are logged.");
-  root.addView(info);
-  Button local=new Button(this);
-  local.setText("Test local WebRTC constructor");
-  root.addView(local);
-  Button online=new Button(this);
-  online.setText("Test ipleak.net in this WebView");
-  root.addView(online);
-  Button export=new Button(this);
-  export.setText("Export Chrome debug TXT");
-  root.addView(export);
-  status=new TextView(this);
-  status.setTextColor(Color.DKGRAY);
-  status.setText("Run Chrome test, then export the log.");
-  root.addView(status);
+
+  TextView heading=new TextView(this);
+  heading.setText("XiNyE WebRTC Guard V5");
+  heading.setTextSize(21);
+  heading.setTextColor(Color.BLACK);
+  root.addView(heading);
+  state=new TextView(this);
+  state.setTextColor(Color.rgb(150,45,25));
+  state.setTextSize(13);
+  root.addView(state);
+
+  Button scan=new Button(this);scan.setText("Scan installed Chrome code");root.addView(scan);
+  Button export=new Button(this);export.setText("Export compatibility TXT");root.addView(export);
+  Button alerts=new Button(this);alerts.setText("Enable Chrome update notification");root.addView(alerts);
+  Button browser=new Button(this);browser.setText("Open Chrome WebRTC test");root.addView(browser);
+  Button local=new Button(this);local.setText("Test frozen V1 WebView");root.addView(local);
+  Button online=new Button(this);online.setText("Test ipleak in System WebView");root.addView(online);
+
   web=new WebView(this);
   web.getSettings().setJavaScriptEnabled(true);
   web.setWebViewClient(new WebViewClient());
   root.addView(web,new LinearLayout.LayoutParams(-1,0,1f));
   setContentView(root);
-  local.setOnClickListener(v->test());
-  online.setOnClickListener(v->web.loadUrl("https://ipleak.net/"));
-  export.setOnClickListener(v-> {
+
+  scan.setOnClickListener(v->startScan());
+  export.setOnClickListener(v->{
     Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);
     i.addCategory(Intent.CATEGORY_OPENABLE);
     i.setType("text/plain");
-    i.putExtra(Intent.EXTRA_TITLE,"XiNyE-WebRTC-V4-Diag.txt");
-    startActivityForResult(i,EXPORT_REQUEST);
+    i.putExtra(Intent.EXTRA_TITLE,"XiNyE-WebRTC-V5-Chrome-Audit.txt");
+    startActivityForResult(i,SAVE_REQUEST);
   });
+  alerts.setOnClickListener(v->{
+    if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+        != PackageManager.PERMISSION_GRANTED){
+      requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},101);
+    }else{
+      state.setText(state.getText()+"\nChrome update alert permission: ready.");
+    }
+  });
+  browser.setOnClickListener(v->{
+    try{
+      Intent i=new Intent(Intent.ACTION_VIEW,android.net.Uri.parse("https://ipleak.net/"));
+      i.setPackage("com.android.chrome");
+      startActivity(i);
+    }catch(Exception e){state.setText("Chrome launch failed: "+e.getClass().getSimpleName());}
+  });
+  local.setOnClickListener(v->test());
+  online.setOnClickListener(v->web.loadUrl("https://ipleak.net/"));
   test();
+
+  String current=ChromeDexScanner.identity(this);
+  String scanned=getSharedPreferences(prefs,MODE_PRIVATE).getString("scanned_identity","");
+  String versionStatus= getSharedPreferences(prefs,MODE_PRIVATE)
+      .getBoolean("chrome_updated",false) ? "CHROME UPDATE DETECTED — RETEST REQUIRED" :
+      (current.equals(scanned)?"SAME VERSION — BUT WEBRTC PROTECTION UNVERIFIED":
+        "CHROME VERSION NOT AUDITED — RETEST REQUIRED");
+  state.setText("System WebView V1: code frozen; verify with local test."
+    +"\nChrome: "+current
+    +"\n"+versionStatus
+    +"\nLSPosed: select com.android.webview + com.android.chrome"
+    +"\nV5 scans local Chrome APK code. No browser history or cookies."
+    +"\nChrome PeerConnection prevention is NOT verified.");
+  if(!current.equals(scanned)) startScan();
  }
+
+ private void startScan(){
+  state.setText("Auditing installed Chrome code in a background thread…\n"
+      +"Chrome WebRTC protection still UNVERIFIED.");
+  new Thread(()->{
+    String result;
+    try{result=ChromeDexScanner.scan(getApplicationContext());}
+    catch(Throwable t){result="CHROME_SCAN_ERROR="+t.getClass().getSimpleName()+"\n";}
+    final String done=result;
+    runOnUiThread(()->{
+      report=done;
+      boolean complete=done.contains("DEX_ENTRIES=")
+          && !done.contains("STATUS=NO_DEX_PARSABLE");
+      if(complete){
+        getSharedPreferences(prefs,MODE_PRIVATE).edit()
+          .putString("scanned_identity",ChromeDexScanner.identity(this))
+          .putBoolean("chrome_updated",false).apply();
+      }
+      int i=done.indexOf("CLASS_SOURCE_CHECK=");
+      String codeLine=i<0?"Could not identify Chrome classes.":done.substring(i,Math.min(done.length(),done.indexOf('\n',i)>i?done.indexOf('\n',i):done.length()));
+      state.setText("Chrome APK scan "+(complete?"completed":"incomplete")
+        +"\n"+codeLine+"\nChrome WebRTC protection: UNVERIFIED"
+        +"\nExport TXT and check ipleak.net; a class signature alone proves nothing.");
+    });
+  },"XiNyE-Chrome-DEX-Audit").start();
+ }
+
  private void test(){
   String html="<!doctype html><meta name='viewport' content='width=device-width'><h3>WebRTC Guard test</h3><p id='r'>Checking...</p><script>const C=window.RTCPeerConnection||window.webkitRTCPeerConnection;document.getElementById('r').textContent=typeof C==='function'?'NOT PROTECTED':'PASS: no PeerConnection constructor';</script>";
   web.loadDataWithBaseURL("https://guard-test.example/",html,"text/html","UTF-8",null);
  }
- @Override protected void onActivityResult(int request,int result,Intent data) {
+ @Override protected void onActivityResult(int request,int result,Intent data){
   super.onActivityResult(request,result,data);
-  if(request!=EXPORT_REQUEST || result!=RESULT_OK || data==null || data.getData()==null) return;
-  final android.net.Uri uri=data.getData();
-  status.setText("Exporting Chrome diagnostics…");
-  new Thread(()->{
-    StringBuilder report=new StringBuilder();
-    report.append("XiNyE WEBRTC V4 DIAGNOSTIC REPORT\n");
-    report.append("Log contains only XiNyEWebRTC entries, not full system logcat.\n");
-    report.append("Please review the TXT before sharing.\n\n");
-    report.append("Android SDK: ").append(Build.VERSION.SDK_INT).append('\n');
-    report.append("Android release: ").append(Build.VERSION.RELEASE).append('\n');
-    report.append("Chrome version: ").append(versionOf("com.android.chrome")).append('\n');
-    report.append("System WebView version: ").append(versionOf("com.android.webview")).append('\n');
-    report.append("Google WebView version: ").append(versionOf("com.google.android.webview")).append('\n');
-    report.append("Module version: 4.0\n");
-    report.append("NOTE: Chrome WEBRTC MAY REMAIN UNPROTECTED IN THIS DEBUG BUILD.\n");
-    report.append("\n=== CHROME HOOK EVENTS (logcat tag XiNyEWebRTC) ===\n");
-    Process p=null;
-    try {
-      ProcessBuilder pb=new ProcessBuilder("su","-c",
-          "logcat -d -v threadtime -t 2500 -s XiNyEWebRTC:I");
-      pb.redirectErrorStream(true);
-      p=pb.start();
-      try(BufferedReader r=new BufferedReader(new InputStreamReader(p.getInputStream(),
-           StandardCharsets.UTF_8))) {
-        String line;
-        int lines=0;
-        while((line=r.readLine())!=null && lines<2500) {
-          if(line.contains("XiNyEWebRTC") || line.contains("Permission denied")
-              || line.contains("not found") || line.contains("su:")) {
-            report.append(line).append('\n');lines++;
-          }
-        }
-      }
-      int exit=p.waitFor();
-      report.append("\nlogcat command exit: ").append(exit).append('\n');
-      if(report.indexOf("LOAD_PACKAGE")==-1)
-        report.append("NO_CHROME_LOAD_EVENT: check LSPosed Chrome scope and force-stop Chrome.\n");
-    } catch(Throwable t) {
-      report.append("\nLOG_CAPTURE_ERROR: ").append(t.getClass().getSimpleName()).append('\n');
-      report.append("ADB fallback: adb logcat -d -v threadtime -s XiNyEWebRTC:I > WebRTC-V4-Diag.txt\n");
-    } finally { if(p!=null) p.destroy(); }
-    boolean success=false;
-    try(OutputStream out=getContentResolver().openOutputStream(uri,"w")) {
-      if(out!=null) {
-        out.write(report.toString().getBytes(StandardCharsets.UTF_8));
-        out.flush();
-        success=true;
-      }
-    } catch(Throwable ignored) {}
-    final boolean ok=success;
-    runOnUiThread(()->status.setText(ok
-        ? "TXT saved. Share this file and your Chrome ipleak.net result."
-        : "TXT export failed. Use ADB fallback described below."));
-  }).start();
- }
- private String versionOf(String pkg) {
-  try {
-    PackageInfo p=getPackageManager().getPackageInfo(pkg,0);
-    return p.versionName==null?"unknown":p.versionName;
-  } catch(PackageManager.NameNotFoundException e){return "not visible/installed";}
-  catch(Throwable e){return "lookup-error";}
+  if(request!=SAVE_REQUEST || result!=RESULT_OK || data==null || data.getData()==null)return;
+  try(OutputStream out=getContentResolver().openOutputStream(data.getData(),"w")){
+    if(out==null)throw new java.io.IOException("null output stream");
+    out.write(report.getBytes(StandardCharsets.UTF_8));out.flush();
+    state.setText("Saved Chrome APK audit TXT. WebRTC protection remains UNVERIFIED.");
+  }catch(Exception e){state.setText("Export failed: "+e.getClass().getSimpleName());}
  }
  @Override protected void onDestroy(){
-  if(web!=null) {web.destroy();web=null;}
-  super.onDestroy();
+  if(web!=null){web.destroy();web=null;}super.onDestroy();
  }
 }
