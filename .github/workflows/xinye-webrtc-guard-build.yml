@@ -27,6 +27,7 @@ jobs:
         run: |
           test -s webrtc-guard-lsp/app/build/outputs/apk/debug/app-debug.apk
           sha256sum webrtc-guard-lsp/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs webrtc-guard-lsp/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: XiNyE-WebRTC-Guard-V1-APK
