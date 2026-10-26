@@ -1,48 +1,42 @@
-# XiNyE WebRTC Guard V6 — Runtime ClassLoader and Signature Hook (EXPERIMENTAL)
+# XiNyE WebRTC Guard V7 — Audit Export Fix
 
-## Changelog
-- V1 WebView `GuardHook.java` and `GuardPolicy.java` remain BYTE-IDENTICAL, verified in CI.
-- V5 scan showed WebContentsObserverProxy and WebContentsImpl in the Chrome 155 APK DEX;
-  V4 logs showed absent from the *base* PathClassLoader.
-- V6 probes Android Chrome's isolated "chrome" split loader and hooks when known
-  WebContents classes become available from ClassLoader.loadClass / BaseDexClassLoader.findClass.
-- Captures the actual WebContents instance via observer constructor; also uses
-  WebContentsImpl.addObserver when available.
-- Resolves JavaScript method by unique signature void(String, interface) rather
-  than the obfuscated method name; fail-closed on 0 or ambiguous candidates.
-- Observer lifecycle callbacks trigger V1-compatible RTCPeerConnection-blocking
-  script, and log whether a callback reports BLOCKED/STILL_AVAILABLE.
-- No manipulation of Chromium command-line switches. No change to KernelSU V3
-  STUN rules, VPN or singbox4root.
+## Proven V6 issue
+User exported a 12-byte TXT containing only `NO_SCAN_YET`.
+V6 initialized its in-memory report to that placeholder on each activity
+creation, but skipped scanning if Chrome's previously scanned identity was
+unchanged. This made export produce a placeholder even when an earlier scan
+had succeeded.
 
-## Important limitations
-- **UNVERIFIED ON CHROME 155** at delivery time.
-- Java Chromium navigation callbacks are not guaranteed to precede the page's
-  earliest scripts; subframes, workers and native WebRTC are not fully covered.
-- Seeing "JS_CALLBACK state=BLOCKED" proves one JavaScript evaluation, not
-  whole-page, all-frame, persistent protection.
-- R8 can change method signatures across Chrome versions. V5's version-change
-  monitor remains; no unconditional success state.
-- If protection fails, Chrome still exposes local 192.168.x.x ICE candidates.
-- No security guarantee without real-device ipleak.net verification.
-- May impact websites using WebRTC calls, if injection succeeds.
+## V7 concrete repair
+- Atomic-ish durable audit report persistence in app-private files, reloaded
+  and identity-validated every time the app opens.
+- A missing/stale cache triggers a new scan even when Chrome version is unchanged.
+- Export while scan is running queues the document picker until scan finishes.
+- Export when no cache exists starts scanning automatically.
+- Every completed scan stores full error details if scanning fails: never export
+  bare NO_SCAN_YET.
+- Report includes elapsed time, Chrome identity comparison and explicit
+  CHROME_WEBRTC_PROTECTION=UNVERIFIED.
+- Chrome update version changes invalidate the cached report.
 
-## Recommended LSPosed scopes
-`com.android.webview`, `com.android.chrome`.
+## Preserved unchanged
+- V1 GuardHook.java & GuardPolicy.java are byte-identical to frozen baseline.
+- V6 ChromeGuardHook.java is intentionally unchanged because user provided
+  an APK audit placeholder, NOT runtime ADB hook logs. Unknown Chrome runtime
+  problem must not be guessed at.
+- LSPosed recommended scopes: com.android.webview;com.android.chrome.
+- KSU V3 STUN guard and singbox4root unchanged.
 
-## Test and diagnostics
-1. Update APK, enable recommended LSPosed scopes, reboot. Do not touch KSU V3.
-2. Confirm the V1 System WebView test is still PASS.
-3. Launch Chrome and load https://ipleak.net/ for WebRTC detection.
-4. Export Chrome code audit TXT in V6 App.
-5. Capture Chrome runtime logs using supplied `XiNyE-V6-Chrome-Diag.bat` with USB debugging.
-6. Upload Chrome runtime TXT and WebRTC result screenshot to identify active stage.
+## Testing & next evidence
+1. Install V7 and enable both LSPosed scopes.
+2. Test System WebView: PASS must continue.
+3. In V7 App, tap "Re-scan Chrome APK code". Wait until completed.
+4. Tap Export V7 Chrome audit TXT. Re-open app and repeat export to
+   confirm the same report is correctly restored from persistent storage.
+5. On a Windows PC with ADB, run supplied XiNyE-V7-Chrome-Runtime.bat.
+   This captures **runtime** class-loader and callback logs after Chrome
+   is force-stopped and re-opened; APK audit alone cannot identify Hook failure.
+6. Upload both exported TXT and runtime ADB TXT plus ipleak WebRTC result.
 
-Key lines:
-`PROBE origin=EXPLICIT_CHROME_SPLIT observer=FOUND`
-`OBSERVER_INSTALL callback_count=...`
-`JS_SUBMIT ... mapped_by_signature=YES`
-`JS_CALLBACK state=BLOCKED`
-
-Security: do not claim successful protection unless external ICE test says
-"No WebRTC candidates reported" consistently.
+Chrome privacy goal remains NOT VERIFIED. WebContents callbacks are not a
+reliable document-start injection mechanism and may not cover all frames.
