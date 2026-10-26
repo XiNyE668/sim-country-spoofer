@@ -27,6 +27,7 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
     private static final String CALLBACK_CLASS =
         "org.chromium.content_public.browser.JavaScriptCallback";
     private static final String TAG = "[XiNyE-WebRTC-Guard V3/Chrome] ";
+    private static final String CONTENTS_KEY = "xinye_rtc_webcontents";
     private static final AtomicBoolean installed = new AtomicBoolean(false);
     private static final String SCRIPT = GuardPolicy.DOCUMENT_START_SCRIPT
         + ";typeof window.RTCPeerConnection==='undefined'?'BLOCKED':'STILL_AVAILABLE'";
@@ -67,6 +68,34 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
             }
             synchronized (ChromeGuardHook.class) {
                 if (installed.get()) return true;
+                // Modern WebContentsObserverProxy() calls the no-arg
+                // WebContentsObserver base constructor, so its inherited
+                // getWebContents() returns null. Preserve constructor argument.
+                XposedBridge.hookAllConstructors(proxyClass, new XC_MethodHook() {
+                    @Override protected void afterHookedMethod(MethodHookParam p) {
+                        if (p.args != null && p.args.length > 0 && p.args[0] != null) {
+                            XposedHelpers.setAdditionalInstanceField(
+                                p.thisObject, CONTENTS_KEY, p.args[0]);
+                        }
+                    }
+                });
+                // Secondary association for already-created proxy instances.
+                Class<?> contentsClass = XposedHelpers.findClassIfExists(
+                    "org.chromium.content.browser.webcontents.WebContentsImpl", loader);
+                if (contentsClass != null) {
+                    XposedBridge.hookAllMethods(contentsClass, "addObserver", new XC_MethodHook() {
+                        @Override protected void afterHookedMethod(MethodHookParam p) {
+                            try {
+                                Object proxy = XposedHelpers.getObjectField(
+                                    p.thisObject, "mObserverProxy");
+                                if (proxy != null) {
+                                    XposedHelpers.setAdditionalInstanceField(
+                                        proxy, CONTENTS_KEY, p.thisObject);
+                                }
+                            } catch (Throwable ignored) { }
+                        }
+                    });
+                }
                 int callbacks = 0;
                 callbacks += installMethod(proxyClass, "didFinishNavigationInPrimaryMainFrame",
                     "navigation-commit", loader);
@@ -98,9 +127,17 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
             return XposedBridge.hookAllMethods(observer, method, new XC_MethodHook() {
                 @Override protected void afterHookedMethod(MethodHookParam param) {
                     try {
-                        Object contents = XposedHelpers.callMethod(param.thisObject,
-                            "getWebContents");
-                        if (contents == null) return;
+                        Object contents = XposedHelpers.getAdditionalInstanceField(
+                            param.thisObject, CONTENTS_KEY);
+                        if (contents == null) {
+                            contents = XposedHelpers.callMethod(param.thisObject,
+                                "getWebContents");
+                        }
+                        if (contents == null) {
+                            XposedBridge.log(TAG + phase +
+                                ": WebContents unavailable, cannot inject");
+                            return;
+                        }
                         evaluate(contents, loader, phase);
                     } catch (Throwable e) {
                         XposedBridge.log(TAG + phase + ": invocation failed: " + e);
