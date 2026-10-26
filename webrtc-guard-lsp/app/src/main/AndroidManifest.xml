@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <uses-permission android:name="android.permission.INTERNET"/>
-  <application android:label="XiNyE WebRTC Guard V1" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true">
+  <application android:label="XiNyE WebRTC Guard V2" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true">
     <meta-data android:name="xposedmodule" android:value="true"/>
     <meta-data android:name="xposedminversion" android:value="82"/>
-    <meta-data android:name="xposeddescription" android:value="Block WebRTC JavaScript ICE candidate gathering in compatible WebViews only."/>
-    <meta-data android:name="xposedscope" android:value="io.github.xinye.webrtcguard,org.lineageos.jelly"/>
+    <meta-data android:name="xposeddescription" android:value="Frozen V1 WebView protection + experimental Chrome ICE IP-policy hook."/>
+    <meta-data android:name="xposedscope" android:value="io.github.xinye.webrtcguard;com.android.chrome"/>
     <activity android:name=".GuardActivity" android:exported="true">
       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
     </activity>
