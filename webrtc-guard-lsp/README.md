@@ -1,36 +1,21 @@
-# XiNyE WebRTC Guard V3 — experimental Chrome
+# XiNyE WebRTC Guard V4 Debug
+- Intent: collect reproducible, low-sensitive debug telemetry from Chrome's experimental V3 Xposed hook.
+- V1 frozen: `GuardHook.java` and `GuardPolicy.java` byte-identical to baseline.
+- V3 injection still experimental: may run too late or not at all. Log events are not proof of protection.
+- Scope recommendations: `com.android.webview` and `com.android.chrome`.
+- Network layer untouched; no modification to singbox4root or KSU.
+- Export uses Android document picker; after Chrome ipleak.net test use Export Chrome debug TXT.
+- Grant KernelSU root prompt for READ-ONLY filtered logcat access; app does not alter network/firewall. If refused, use ADB fallback.
+- Diagnostic captures only module-generated logcat tag `XiNyEWebRTC`. Does not intentionally log browsing URLs, addresses, phone IDs or credentials.
+- If no Chrome LOAD_PACKAGE: LSPosed injection not triggered in Chrome or logcat overwritten.
+- If CLASS_PROBE observer=ABSENT: Chromium class missing/obfuscated/classloader not ready.
+- If CALLBACKS installed but no LIFECYCLE_CALLBACK: hook not invoked.
+- If LIFECYCLE and JS_EVALUATE_SUBMIT but no JS_RESULT: evaluation or callback failure / teardown.
+- If JS_RESULT state=BLOCKED and ipleak shows IP: likely injected too late/other frame/worker/uncovered path.
+- If JS_RESULT state=STILL_AVAILABLE: script did not disable API.
+- Android Chrome real IP bypass still possible; do not trust V4 for privacy until tested.
 
-**WebView V1 frozen:** \`GuardHook.java\` and \`GuardPolicy.java\` are byte-identical to V1.
+ADB backup:
+`adb logcat -d -v threadtime -s XiNyEWebRTC:I > WebRTC-V4-Diag.txt`
 
-## LSPosed recommended scopes
-- com.android.webview — user's confirmed WebView provider
-- com.android.chrome — Chrome experimental injection
-Do not select the module application's own package for scope.
-
-## Chrome V3 design
-The V2 Chromium command-line IP policy experiment is completely removed.
-On compatible un-obfuscated Chromium Java WebContents implementations,
-the module hooks lifecycle events and attempts to evaluate exactly the same
-JavaScript PeerConnection-disabling expression used by frozen WebView V1.
-This is a BEST-EFFORT injection. Java observer callbacks may occur after
-early page scripts, so the result MUST NOT be treated as complete Chrome
-protection. Other iframes/workers may still be able to use WebRTC. There is
-no proven reliable document-start interface in Android Chrome LSPosed here.
-
-Chrome scope diagnostics appear in LSPosed logs:
-- observer class not found: no interception, Chrome class may be obfuscated
-- observer callbacks installed: hook installed, but not yet proof of guarding
-- JS check="BLOCKED": injection executed in an observed document
-- JS check="STILL_AVAILABLE": injection did not disable PeerConnection
-Always check ipleak.net after a full Chrome force-stop or phone reboot.
-Only "No WebRTC candidates reported" plus passing network tests meets target.
-
-No changes to iptables, KernelSU, singbox4root or VPN routing.
-This may disable WebRTC calls in Chrome when interception works.
-
-## Install/rollback
-Use Android APK install; if signature mismatch uninstall V2 then install V3.
-Enable module + recommended scopes in LSPosed, reboot, test System WebView first.
-If Chrome IP is exposed, DO NOT treat module as safe; disable Chrome scope
-while retaining WebView scope, and rely on a proven browser extension or
-browser with built-in protection if available.
+If APK signature changed, uninstall previous package first, install V4, enable recommended scopes and reboot. Test frozen WebView first, then Chrome.

@@ -36,6 +36,8 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam p) {
         if (!CHROME.equals(p.packageName)) return;
         final String process = p.processName == null ? CHROME : p.processName;
+        DiagnosticLog.write("LOAD_PACKAGE process=" + process + " pid=" + android.os.Process.myPid()
+            + " loader=" + (p.classLoader == null ? "null" : p.classLoader.getClass().getName()));
         try {
             if (install(p.classLoader, process)) return;
             // Some Chrome variants attach a secondary split loader after
@@ -45,16 +47,18 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
                     if (installed.get()) return;
                     try {
                         Context context = (Context) param.args[0];
+                        DiagnosticLog.write("APPLICATION_ATTACH process=" + process
+                            + " loader=" + context.getClassLoader().getClass().getName());
                         install(context.getClassLoader(), process);
                     } catch (Throwable e) {
-                        XposedBridge.log(TAG + "attach fallback error: " + e);
+                        DiagnosticLog.write(TAG + "attach fallback error: " + e);
                     }
                 }
             });
-            XposedBridge.log(TAG + process +
+            DiagnosticLog.write(TAG + process +
                 ": Chromium observer unavailable at load; attach fallback armed");
         } catch (Throwable e) {
-            XposedBridge.log(TAG + process + ": setup failed: " + e);
+            DiagnosticLog.write(TAG + process + ": setup failed: " + e);
         }
     }
 
@@ -62,8 +66,17 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
         if (installed.get()) return true;
         try {
             Class<?> proxyClass = XposedHelpers.findClassIfExists(PROXY_CLASS, loader);
+            DiagnosticLog.write("CLASS_PROBE observer=" + (proxyClass == null ? "ABSENT" : "FOUND")
+                + " process=" + process);
+            Class<?> contentProbe = XposedHelpers.findClassIfExists(
+                "org.chromium.content.browser.webcontents.WebContentsImpl", loader);
+            DiagnosticLog.write("CLASS_PROBE webcontents=" + (contentProbe == null ? "ABSENT" : "FOUND")
+                + " process=" + process);
+            Class<?> callbackProbe = XposedHelpers.findClassIfExists(CALLBACK_CLASS, loader);
+            DiagnosticLog.write("CLASS_PROBE callback=" + (callbackProbe == null ? "ABSENT" : "FOUND")
+                + " process=" + process);
             if (proxyClass == null) {
-                XposedBridge.log(TAG + process + ": observer class not found (may be obfuscated)");
+                DiagnosticLog.write(TAG + process + ": observer class not found (may be obfuscated)");
                 return false;
             }
             synchronized (ChromeGuardHook.class) {
@@ -76,6 +89,9 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
                         if (p.args != null && p.args.length > 0 && p.args[0] != null) {
                             XposedHelpers.setAdditionalInstanceField(
                                 p.thisObject, CONTENTS_KEY, p.args[0]);
+                            DiagnosticLog.write("OBSERVER_INSTANCE_ASSOCIATED");
+                        } else {
+                            DiagnosticLog.write("OBSERVER_CONSTRUCTOR_NO_CONTENTS");
                         }
                     }
                 });
@@ -108,15 +124,15 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
                 callbacks += installMethod(proxyClass, "didStopLoading",
                     "stop-loading-fallback", loader);
                 if (callbacks == 0) {
-                    XposedBridge.log(TAG + process + ": no supported observer callbacks");
+                    DiagnosticLog.write(TAG + process + ": no supported observer callbacks");
                     return false;
                 }
                 installed.set(true);
-                XposedBridge.log(TAG + process + ": observer callbacks installed=" + callbacks);
+                DiagnosticLog.write(TAG + process + ": observer callbacks installed=" + callbacks);
                 return true;
             }
         } catch (Throwable e) {
-            XposedBridge.log(TAG + process + ": install error: " + e);
+            DiagnosticLog.write(TAG + process + ": install error: " + e);
             return false;
         }
     }
@@ -127,6 +143,7 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
             return XposedBridge.hookAllMethods(observer, method, new XC_MethodHook() {
                 @Override protected void afterHookedMethod(MethodHookParam param) {
                     try {
+                        DiagnosticLog.write("LIFECYCLE_CALLBACK phase=" + phase);
                         Object contents = XposedHelpers.getAdditionalInstanceField(
                             param.thisObject, CONTENTS_KEY);
                         if (contents == null) {
@@ -134,18 +151,18 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
                                 "getWebContents");
                         }
                         if (contents == null) {
-                            XposedBridge.log(TAG + phase +
+                            DiagnosticLog.write(TAG + phase +
                                 ": WebContents unavailable, cannot inject");
                             return;
                         }
                         evaluate(contents, loader, phase);
                     } catch (Throwable e) {
-                        XposedBridge.log(TAG + phase + ": invocation failed: " + e);
+                        DiagnosticLog.write(TAG + phase + ": invocation failed: " + e);
                     }
                 }
             }).size();
         } catch (Throwable e) {
-            XposedBridge.log(TAG + "observer callback missing " + method + ": " + e);
+            DiagnosticLog.write(TAG + "observer callback missing " + method + ": " + e);
             return 0;
         }
     }
@@ -163,7 +180,9 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
                             if ("handleJavaScriptResult".equals(method.getName())) {
                                 String result = args != null && args.length > 0 ?
                                     String.valueOf(args[0]) : "(no result)";
-                                XposedBridge.log(TAG + currentPhase + ": JS check=" + result);
+                                DiagnosticLog.write("JS_RESULT phase=" + currentPhase
+                                    + " state=" + (result.contains("BLOCKED") ? "BLOCKED"
+                                        : result.contains("STILL_AVAILABLE") ? "STILL_AVAILABLE" : "UNKNOWN"));
                             }
                             if ("toString".equals(method.getName())) return "XiNyEChromeCallback";
                             if ("hashCode".equals(method.getName())) return System.identityHashCode(proxy);
@@ -173,10 +192,12 @@ public final class ChromeGuardHook implements IXposedHookLoadPackage {
                         }
                     });
             }
+            DiagnosticLog.write("JS_EVALUATE_SUBMIT phase=" + phase
+                + " callbackClass=" + (callbackClass == null ? "MISSING" : "PRESENT"));
             XposedHelpers.callMethod(contents, "evaluateJavaScript", SCRIPT, callback);
             // Submitted != effective. The callback result is the actual JS check.
         } catch (Throwable e) {
-            XposedBridge.log(TAG + phase + ": JS evaluate failed: " + e);
+            DiagnosticLog.write(TAG + phase + ": JS evaluate failed: " + e);
         }
     }
 }
