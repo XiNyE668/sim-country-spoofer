@@ -1,0 +1,36 @@
+name: XiNyE WebRTC Network ZIP
+on:
+  push:
+    branches: [build/xinye-webrtc-guard-v1]
+    paths:
+      - 'webrtc-network-source/**'
+      - '.github/workflows/xinye-webrtc-network-package.yml'
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: build/xinye-webrtc-guard-v1
+      - name: Package and test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd webrtc-network-source
+          for x in common.sh service.sh action.sh uninstall.sh customize.sh; do sh -n "$x"; done
+          zip -9 ../XiNyE-WebRTC-Network-V1-GitHub.zip module.prop common.sh service.sh action.sh uninstall.sh customize.sh guard.enabled README_CN.md
+          cd ..
+          unzip -t XiNyE-WebRTC-Network-V1-GitHub.zip
+          sha256sum XiNyE-WebRTC-Network-V1-GitHub.zip
+      - name: Commit installable ZIP to isolated build branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p deliverables
+          mv XiNyE-WebRTC-Network-V1-GitHub.zip deliverables/
+          git add deliverables/XiNyE-WebRTC-Network-V1-GitHub.zip
+          git commit -m 'build: publish KernelSU flashable ZIP [skip ci]' || exit 0
+          git push origin HEAD:build/xinye-webrtc-guard-v1

@@ -1,0 +1,6 @@
+id=xinye_webrtc_network
+name=XiNyE WebRTC Network Guard
+version=V1
+versionCode=1
+author=XiNyE
+description=Targeted UDP STUN blocking only; NOT a complete VPN or IP-leak guard.
