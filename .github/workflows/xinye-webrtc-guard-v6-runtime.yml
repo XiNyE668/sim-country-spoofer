@@ -1,0 +1,45 @@
+name: XiNyE WebRTC Guard V6 Runtime APK
+on:
+  push:
+    branches: [build/xinye-webrtc-guard-v6-runtime]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: {contents: read}
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.11.1'}
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0' || test -f "$ANDROID_HOME/platforms/android-35/android.jar"
+      - name: Frozen V1 and scope policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmp webrtc-guard-lsp/app/src/main/java/io/github/xinye/webrtcguard/GuardHook.java <(git show a31ef433cfa126b3d3f520a5f9974e4a532c9fa5:webrtc-guard-lsp/app/src/main/java/io/github/xinye/webrtcguard/GuardHook.java)
+          cmp webrtc-guard-lsp/app/src/main/java/io/github/xinye/webrtcguard/GuardPolicy.java <(git show a31ef433cfa126b3d3f520a5f9974e4a532c9fa5:webrtc-guard-lsp/app/src/main/java/io/github/xinye/webrtcguard/GuardPolicy.java)
+          grep -Fq 'com.android.webview;com.android.chrome' webrtc-guard-lsp/app/src/main/AndroidManifest.xml
+          ! grep -q 'force-webrtc-ip-handling-policy' webrtc-guard-lsp/app/src/main/java/io/github/xinye/webrtcguard/ChromeGuardHook.java
+      - name: Build V6
+        run: gradle -p webrtc-guard-lsp --no-daemon :app:assembleDebug
+      - name: Validate APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=webrtc-guard-lsp/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "versionCode='6'"
+          unzip -p "$APK" assets/xposed_init | grep -Fx 'io.github.xinye.webrtcguard.GuardHook'
+          unzip -p "$APK" assets/xposed_init | grep -Fx 'io.github.xinye.webrtcguard.ChromeGuardHook'
+          sha256sum "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XiNyE-WebRTC-Guard-V6-Runtime-APK
+          path: webrtc-guard-lsp/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

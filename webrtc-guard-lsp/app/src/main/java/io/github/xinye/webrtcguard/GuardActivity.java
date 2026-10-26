@@ -25,7 +25,7 @@ public final class GuardActivity extends Activity {
  private WebView web;
  private TextView state;
  private String report="NO_SCAN_YET\n";
- private final String prefs="xinye_chrome_v5_monitor";
+ private final String prefs="xinye_chrome_v6_monitor";
 
  @Override public void onCreate(Bundle saved) {
   super.onCreate(saved);
@@ -35,7 +35,7 @@ public final class GuardActivity extends Activity {
   root.setBackgroundColor(Color.WHITE);
 
   TextView heading=new TextView(this);
-  heading.setText("XiNyE WebRTC Guard V5");
+  heading.setText("XiNyE WebRTC Guard V6");
   heading.setTextSize(21);
   heading.setTextColor(Color.BLACK);
   root.addView(heading);
@@ -44,8 +44,8 @@ public final class GuardActivity extends Activity {
   state.setTextSize(13);
   root.addView(state);
 
-  Button scan=new Button(this);scan.setText("Scan installed Chrome code");root.addView(scan);
-  Button export=new Button(this);export.setText("Export compatibility TXT");root.addView(export);
+  Button scan=new Button(this);scan.setText("Scan Chrome code (V6)");root.addView(scan);
+  Button export=new Button(this);export.setText("Export V6 compatibility TXT");root.addView(export);
   Button alerts=new Button(this);alerts.setText("Enable Chrome update notification");root.addView(alerts);
   Button browser=new Button(this);browser.setText("Open Chrome WebRTC test");root.addView(browser);
   Button local=new Button(this);local.setText("Test frozen V1 WebView");root.addView(local);
@@ -62,7 +62,7 @@ public final class GuardActivity extends Activity {
     Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);
     i.addCategory(Intent.CATEGORY_OPENABLE);
     i.setType("text/plain");
-    i.putExtra(Intent.EXTRA_TITLE,"XiNyE-WebRTC-V5-Chrome-Audit.txt");
+    i.putExtra(Intent.EXTRA_TITLE,"XiNyE-WebRTC-V6-Chrome-Audit.txt");
     startActivityForResult(i,SAVE_REQUEST);
   });
   alerts.setOnClickListener(v->{
@@ -94,8 +94,8 @@ public final class GuardActivity extends Activity {
     +"\nChrome: "+current
     +"\n"+versionStatus
     +"\nLSPosed: select com.android.webview + com.android.chrome"
-    +"\nV5 scans local Chrome APK code. No browser history or cookies."
-    +"\nChrome PeerConnection prevention is NOT verified.");
+    +"\nV6 scans local Chrome APK code. No browser history or cookies."
+    +"\nChrome WebRTC protection UNVERIFIED until ipleak.net passes.");
   if(!current.equals(scanned)) startScan();
  }
 

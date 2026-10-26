@@ -18,7 +18,7 @@ public final class ChromeUpdateReceiver extends BroadcastReceiver {
  @Override public void onReceive(Context c,Intent intent) {
   if(intent==null || intent.getData()==null ||
       !"com.android.chrome".equals(intent.getData().getSchemeSpecificPart()))return;
-  c.getSharedPreferences("xinye_chrome_v5_monitor",Context.MODE_PRIVATE).edit()
+  c.getSharedPreferences("xinye_chrome_v6_monitor",Context.MODE_PRIVATE).edit()
     .putBoolean("chrome_updated",true)
     .remove("scanned_identity").apply();
   if(Build.VERSION.SDK_INT>=33 && c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -31,7 +31,7 @@ public final class ChromeUpdateReceiver extends BroadcastReceiver {
     Notification.Builder n=new Notification.Builder(c,"xinye_chrome_compat")
       .setSmallIcon(android.R.drawable.stat_notify_error)
       .setContentTitle("Chrome updated — WebRTC guard unverified")
-      .setContentText("Open XiNyE V5 and recheck Chrome protection on ipleak.net.")
+      .setContentText("Open XiNyE V6 and recheck Chrome protection on ipleak.net.")
       .setAutoCancel(true);
     m.notify(5155,n.build());
   } catch(Throwable ignored){}
